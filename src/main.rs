@@ -1,3 +1,4 @@
+mod model;
 mod routes;
 use crate::routes::health;
 use axum::{routing::get, Router, Server};
