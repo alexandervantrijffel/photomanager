@@ -1,9 +1,7 @@
-use crate::model::MutationRoot;
-use crate::model::QueryRoot;
-use crate::model::ServiceSchema;
+use crate::model::{MutationRoot, QueryRoot, ServiceSchema};
 // use async_graphql::*;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
+use async_graphql::{EmptySubscription, Schema};
 // use async_graphql_axum::*;
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
@@ -63,7 +61,9 @@ pub(crate) async fn run_graphql_server() {
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription).finish();
     // async-graphql-examples
     // https://github.com/async-graphql/examples
-    println!("Running photomanager graphql server. Visit http://localhost:8000/graphql to use the playground.");
+    println!(
+        "Photomanager graphql server.\nVisit http://localhost:8000/graphql to use the playground."
+    );
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route("/ws", get(graphql_ws_handler))

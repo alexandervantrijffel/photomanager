@@ -1,5 +1,5 @@
-use async_graphql::{Context, Enum, InputType, Object, Schema};
-use async_graphql::{EmptyMutation, EmptySubscription};
+use async_graphql::EmptySubscription;
+use async_graphql::{Context, Enum, Object, Schema};
 
 pub(crate) type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 pub(crate) struct QueryRoot;
