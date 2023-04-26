@@ -12,29 +12,26 @@ use axum::{
     routing::get,
     Json, Router, Server,
 };
-use axum_macros::debug_handler;
+// use axum_macros::debug_handler;
 use serde::Serialize;
 #[derive(Serialize)]
 struct Health {
     healthy: bool,
 }
 
-pub(crate) async fn health() -> impl IntoResponse {
+async fn health() -> impl IntoResponse {
     let health = Health { healthy: true };
     (StatusCode::OK, Json(health))
 }
 
-pub(crate) async fn graphql_playground() -> impl IntoResponse {
+async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(
         GraphQLPlaygroundConfig::new("/").subscription_endpoint("/ws"),
     ))
 }
 
-#[debug_handler]
-pub(crate) async fn graphql_handler(
-    schema: Extension<ServiceSchema>,
-    req: GraphQLRequest,
-) -> GraphQLResponse {
+// #[debug_handler]
+async fn graphql_handler(schema: Extension<ServiceSchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
 }
 
