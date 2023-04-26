@@ -1,3 +1,4 @@
+use crate::file_management::get_photo_paths_to_review;
 use async_graphql::EmptySubscription;
 use async_graphql::{Context, Enum, Object, Schema};
 
@@ -16,7 +17,7 @@ impl QueryRoot {
     }
 
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<&'static str> {
-        vec!["/photos/1.jpg", "/photos/2.jpg"]
+        get_photo_paths_to_review()
     }
 }
 pub(crate) struct MutationRoot;
