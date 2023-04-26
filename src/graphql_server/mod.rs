@@ -13,7 +13,9 @@ use axum::{
     Json, Router, Server,
 };
 // use axum_macros::debug_handler;
+use hyper::Method;
 use serde::Serialize;
+use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Serialize)]
 struct Health {
@@ -45,7 +47,7 @@ async fn graphql_ws_handler(
         .protocols(ALL_WEBSOCKET_PROTOCOLS)
         .on_upgrade(move |stream| {
             GraphQLWebSocket::new(stream, schema.clone(), protocol)
-                // for adding token support, see https://github.com/async-graphql/examples/tree/master/models/token
+                // for adding token-from-header support, see https://github.com/async-graphql/examples/tree/master/models/token
                 // .on_connection_init(on_connection_init)
                 .serve()
         })
@@ -58,8 +60,14 @@ pub(crate) async fn run_graphql_server() {
     println!("Running photomanager graphql server");
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
+        .route("/ws", get(graphql_ws_handler))
         .route("/health", get(health))
-        .layer(Extension(schema));
+        .layer(Extension(schema))
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods(vec![
+            Method::GET,
+            Method::POST,
+            Method::DELETE,
+        ]));
     Server::bind(&"0.0.0.0:8000".parse().unwrap())
         .serve(app.into_make_service())
         .await

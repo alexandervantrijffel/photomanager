@@ -10,5 +10,7 @@ async-graphql = "5.0.7"
 async-graphql-axum = "5.0.7"
 axum = "0.6.17"
 axum-macros = "0.3.7"
+hyper = "0.14.26"
 serde = {version="1.0.160", features=["derive"]}
 tokio = { version = "1.28.0", features = ["full"] }
+tower-http = { version = "0.4.0", features=["cors"] }
