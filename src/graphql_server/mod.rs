@@ -1,19 +1,20 @@
 use crate::model::QueryRoot;
 use crate::model::ServiceSchema;
 // use async_graphql::*;
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
 use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 // use async_graphql_axum::*;
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
-    extract::Extension,
+    extract::{Extension, WebSocketUpgrade},
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router, Server,
 };
 // use axum_macros::debug_handler;
 use serde::Serialize;
+
 #[derive(Serialize)]
 struct Health {
     healthy: bool,
@@ -35,19 +36,20 @@ async fn graphql_handler(schema: Extension<ServiceSchema>, req: GraphQLRequest) 
     schema.execute(req.into_inner()).await.into()
 }
 
-// async fn graphql_ws_handler(
-//     Extension(schema): Extension<TokenSchema>,
-//     protocol: GraphQLProtocol,
-//     websocket: WebSocketUpgrade,
-// ) -> Response {
-//     websocket
-//         .protocols(ALL_WEBSOCKET_PROTOCOLS)
-//         .on_upgrade(move |stream| {
-//             GraphQLWebSocket::new(stream, schema.clone(), protocol)
-//                 .on_connection_init(on_connection_init)
-//                 .serve()
-//         })
-// }
+async fn graphql_ws_handler(
+    Extension(schema): Extension<ServiceSchema>,
+    protocol: GraphQLProtocol,
+    websocket: WebSocketUpgrade,
+) -> Response {
+    websocket
+        .protocols(ALL_WEBSOCKET_PROTOCOLS)
+        .on_upgrade(move |stream| {
+            GraphQLWebSocket::new(stream, schema.clone(), protocol)
+                // for adding token support, see https://github.com/async-graphql/examples/tree/master/models/token
+                // .on_connection_init(on_connection_init)
+                .serve()
+        })
+}
 
 pub(crate) async fn run_graphql_server() {
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
