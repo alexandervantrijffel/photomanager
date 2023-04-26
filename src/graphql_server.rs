@@ -22,10 +22,10 @@ async fn graphql_playground() -> impl IntoResponse {
 // #[debug_handler]
 async fn graphql_handler(
     schema: Extension<ServiceSchema>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
-    println!("GQL request. Headers: {:?}", headers);
+    // println!("GQL request. Headers: {:?}", headers);
     schema.execute(req.into_inner()).await.into()
 }
 
