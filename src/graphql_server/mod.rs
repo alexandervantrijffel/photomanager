@@ -57,7 +57,7 @@ pub(crate) async fn run_graphql_server() {
     // https://github.com/async-graphql/examples
     println!("Running photomanager graphql server");
     let app = Router::new()
-        .route("/", get(graphql_playground).post(graphql_handler))
+        .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route("/health", get(health))
         .layer(Extension(schema));
     Server::bind(&"0.0.0.0:8000".parse().unwrap())
