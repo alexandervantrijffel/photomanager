@@ -5,6 +5,11 @@ pub(crate) type ServiceSchema = Schema<QueryRoot, EmptyMutation, EmptySubscripti
 pub(crate) struct QueryRoot;
 #[Object]
 impl QueryRoot {
+    /*
+         {
+      hello
+    }
+    */
     async fn hello(&self, _ctx: &Context<'_>) -> &'static str {
         "Hello world"
     }
