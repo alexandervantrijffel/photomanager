@@ -1,3 +1,4 @@
+use crate::model::MutationRoot;
 use crate::model::QueryRoot;
 use crate::model::ServiceSchema;
 // use async_graphql::*;
@@ -59,7 +60,7 @@ async fn graphql_ws_handler(
 }
 
 pub(crate) async fn run_graphql_server() {
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
+    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription).finish();
     // async-graphql-examples
     // https://github.com/async-graphql/examples
     println!("Running photomanager graphql server. Visit http://localhost:8000/graphql to use the playground.");
