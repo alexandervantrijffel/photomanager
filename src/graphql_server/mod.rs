@@ -7,12 +7,12 @@ use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
     extract::{Extension, WebSocketUpgrade},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router, Server,
 };
-// use axum_macros::debug_handler;
+use axum_macros::debug_handler;
 use hyper::Method;
 use serde::Serialize;
 use tower_http::cors::{Any, CorsLayer};
@@ -29,12 +29,17 @@ async fn health() -> impl IntoResponse {
 
 async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(
-        GraphQLPlaygroundConfig::new("/").subscription_endpoint("/ws"),
+        GraphQLPlaygroundConfig::new("/graphql").subscription_endpoint("/ws"),
     ))
 }
 
-// #[debug_handler]
-async fn graphql_handler(schema: Extension<ServiceSchema>, req: GraphQLRequest) -> GraphQLResponse {
+#[debug_handler]
+async fn graphql_handler(
+    schema: Extension<ServiceSchema>,
+    headers: HeaderMap,
+    req: GraphQLRequest,
+) -> GraphQLResponse {
+    println!("GQL request. Headers: {:?}", headers);
     schema.execute(req.into_inner()).await.into()
 }
 
