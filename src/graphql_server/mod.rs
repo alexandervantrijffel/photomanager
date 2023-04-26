@@ -12,7 +12,7 @@ use axum::{
     routing::get,
     Json, Router, Server,
 };
-use axum_macros::debug_handler;
+// use axum_macros::debug_handler;
 use hyper::Method;
 use serde::Serialize;
 use tower_http::cors::{Any, CorsLayer};
@@ -22,7 +22,7 @@ struct Health {
     healthy: bool,
 }
 
-async fn health() -> impl IntoResponse {
+async fn health_handler() -> impl IntoResponse {
     let health = Health { healthy: true };
     (StatusCode::OK, Json(health))
 }
@@ -33,7 +33,7 @@ async fn graphql_playground() -> impl IntoResponse {
     ))
 }
 
-#[debug_handler]
+// #[debug_handler]
 async fn graphql_handler(
     schema: Extension<ServiceSchema>,
     headers: HeaderMap,
@@ -62,11 +62,11 @@ pub(crate) async fn run_graphql_server() {
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
     // async-graphql-examples
     // https://github.com/async-graphql/examples
-    println!("Running photomanager graphql server");
+    println!("Running photomanager graphql server. Visit http://localhost:8000/graphql to use the playground.");
     let app = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route("/ws", get(graphql_ws_handler))
-        .route("/health", get(health))
+        .route("/health", get(health_handler))
         .layer(Extension(schema))
         .layer(CorsLayer::new().allow_origin(Any).allow_methods(vec![
             Method::GET,
