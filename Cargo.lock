@@ -173,6 +173,7 @@ checksum = "b70caf9f1b0c045f7da350636435b775a9733adf2df56e8aa2a29210fbc335d4"
 dependencies = [
  "async-trait",
  "axum-core",
+ "axum-macros",
  "base64 0.21.0",
  "bitflags",
  "bytes",
@@ -904,7 +905,6 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum",
- "axum-macros",
  "globwalk",
  "hyper",
  "serde",

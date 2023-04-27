@@ -7,8 +7,7 @@ authors = ["avtnl <alexander@structura.ws>"]
 [dependencies]
 async-graphql = "5.0.7"
 async-graphql-axum = "5.0.7"
-axum = "0.6.17"
-axum-macros = "0.3.7"
+axum = {version="0.6.17",features= ["macros"]}
 globwalk = "0.8.1"
 hyper = "0.14.26"
 serde = {version="1.0.160", features=["derive"]}

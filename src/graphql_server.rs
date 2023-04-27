@@ -4,6 +4,7 @@ use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOC
 use async_graphql::{EmptySubscription, Schema};
 // use async_graphql_axum::*;
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
+// use axum::debug_handler;
 use axum::{
     extract::{Extension, WebSocketUpgrade},
     http::HeaderMap,
@@ -11,7 +12,6 @@ use axum::{
     routing::get,
     Router,
 };
-// use axum_macros::debug_handler;
 
 async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(
