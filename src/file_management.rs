@@ -1,22 +1,17 @@
 use globwalk::{GlobError, GlobWalkerBuilder};
 
 pub(crate) fn get_photo_paths_to_review() -> Result<Vec<String>, GlobError> {
-    let mut image_files = Vec::new();
-
     let root_dir = "/data/github.com/alexandervantrijffel/photomanager";
-    let walker =
+    let image_files =
         GlobWalkerBuilder::from_patterns(root_dir, &["*.{png,jpg,jpeg,gif}", "!best/*", "!soso/*"])
             .max_depth(10)
             .follow_links(true)
             .build()?
-            .filter_map(Result::ok);
+            .filter_map(Result::ok)
+            .map(|img| img.path().to_str().unwrap().to_string())
+            .take(10)
+            .collect::<Vec<String>>();
 
-    for img in walker {
-        image_files.push(img.path().to_str().unwrap().to_string());
-        if image_files.len() == 10 {
-            break;
-        }
-    }
     Ok(image_files)
 }
 
