@@ -1,6 +1,8 @@
-use globwalk::{GlobError, GlobWalkerBuilder};
+use std::error::Error;
 
-pub(crate) fn get_photo_paths_to_review() -> Result<Vec<String>, GlobError> {
+use globwalk::GlobWalkerBuilder;
+
+pub(crate) fn get_photo_paths_to_review() -> Result<Vec<String>, Box<dyn Error>> {
     let root_dir = "/data/github.com/alexandervantrijffel/photomanager";
     let image_files =
         GlobWalkerBuilder::from_patterns(root_dir, &["*.{png,jpg,jpeg,gif}", "!best/*", "!soso/*"])
