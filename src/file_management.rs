@@ -9,7 +9,9 @@ pub(crate) struct FileManager {
 impl FileManager {
     pub fn new() -> Self {
         FileManager {
-            root_dir: "/data/github.com/alexandervantrijffel/photomanager".to_string(),
+            root_dir: shellexpand::env("$HOME/pictures/photomanager-test/albumx")
+                .unwrap()
+                .to_string(),
         }
     }
     pub fn get_photo_paths_to_review(&self) -> Result<Vec<String>, Box<dyn Error>> {
