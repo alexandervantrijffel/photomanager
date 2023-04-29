@@ -19,9 +19,26 @@ impl FileManager {
     }
 
     fn find_image_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        let image_files = GlobWalkerBuilder::from_patterns(
+        let image_files_pattern = "*.{png,jpg,jpeg,gif}";
+        let folders_with_review_images = GlobWalkerBuilder::from_patterns(
             self.root_dir.as_str(),
-            &["*.{png,jpg,jpeg,gif}", "!best/*", "!soso/*"],
+            &[
+                format!("**/{}", image_files_pattern),
+                "!**/best/".to_string(),
+                "!**/soso/".to_string(),
+            ],
+        )
+        .build()?
+        .filter_map(Result::ok)
+        .map(|img| img.path().parent().unwrap().to_str().unwrap().to_string())
+        .collect::<Vec<String>>();
+
+        // TODO return error if no folders found
+        dbg!(&folders_with_review_images);
+
+        let image_files = GlobWalkerBuilder::from_patterns(
+            folders_with_review_images[0].as_str(),
+            &[image_files_pattern, "!best/*", "!soso/*"],
         )
         .max_depth(1)
         .follow_links(true)
