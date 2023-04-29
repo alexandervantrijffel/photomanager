@@ -20,24 +20,11 @@ impl FileManager {
 
     fn find_image_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
         let image_files_pattern = "*.{png,jpg,jpeg,gif}";
-        let folders_with_review_images = GlobWalkerBuilder::from_patterns(
-            self.root_dir.as_str(),
-            &[
-                format!("**/{}", image_files_pattern),
-                "!**/best/".to_string(),
-                "!**/soso/".to_string(),
-            ],
-        )
-        .build()?
-        .filter_map(Result::ok)
-        .map(|img| img.path().parent().unwrap().to_str().unwrap().to_string())
-        .collect::<Vec<String>>();
-
-        // TODO return error if no folders found
-        dbg!(&folders_with_review_images);
+        let folder_with_review_images =
+            self.find_next_folder_path_with_images_to_review(image_files_pattern)?;
 
         let image_files = GlobWalkerBuilder::from_patterns(
-            folders_with_review_images[0].as_str(),
+            folder_with_review_images.as_str(),
             &[image_files_pattern, "!best/*", "!soso/*"],
         )
         .max_depth(1)
@@ -49,5 +36,28 @@ impl FileManager {
         .collect::<Vec<String>>();
 
         Ok(image_files)
+    }
+
+    fn find_next_folder_path_with_images_to_review(
+        &self,
+        images_files_pattern: &str,
+    ) -> Result<String, Box<dyn Error>> {
+        let folders_with_review_images = GlobWalkerBuilder::from_patterns(
+            self.root_dir.as_str(),
+            &[
+                format!("**/{}", images_files_pattern),
+                "!**/best/".to_string(),
+                "!**/soso/".to_string(),
+            ],
+        )
+        .build()?
+        .filter_map(Result::ok)
+        .take(1)
+        .map(|img| img.path().parent().unwrap().to_str().unwrap().to_string())
+        .collect::<Vec<String>>();
+
+        // TODO return error if no folders found
+        dbg!(&folders_with_review_images);
+        Ok(folders_with_review_images[0].clone())
     }
 }
