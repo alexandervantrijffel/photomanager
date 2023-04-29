@@ -1,9 +1,18 @@
 use std::error::Error;
+use std::os::unix::fs::DirBuilderExt;
+use std::path::PathBuf;
 
+use async_graphql::SimpleObject;
 use globwalk::GlobWalkerBuilder;
 
 pub(crate) struct FileManager {
-    pub root_dir: String,
+    root_dir: String,
+}
+
+#[derive(SimpleObject)]
+pub(crate) struct ImageToReview {
+    url: String,
+    album: String,
 }
 
 impl FileManager {
@@ -14,8 +23,22 @@ impl FileManager {
                 .to_string(),
         }
     }
-    pub fn get_photo_paths_to_review(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        self.find_image_files()
+    pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>, Box<dyn Error>> {
+        let image_files = self.find_image_files()?;
+        Ok(image_files
+            .iter()
+            .map(|f| ImageToReview {
+                url: f.replace(&self.root_dir, "/media"),
+                album: {
+                    if let Some(dir) = PathBuf::from(f).parent().unwrap().to_str() {
+                        dir
+                    } else {
+                        "unknown"
+                    }
+                    .to_string()
+                },
+            })
+            .collect::<Vec<ImageToReview>>())
     }
 
     fn find_image_files(&self) -> Result<Vec<String>, Box<dyn Error>> {

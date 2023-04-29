@@ -1,7 +1,7 @@
 use async_graphql::EmptySubscription;
 use async_graphql::{Context, Enum, Object, Schema};
 
-use crate::file_management::FileManager;
+use crate::file_management::{FileManager, ImageToReview};
 
 pub(crate) type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 pub(crate) struct QueryRoot {
@@ -25,7 +25,7 @@ impl QueryRoot {
         "Hello world"
     }
 
-    async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<String> {
+    async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<ImageToReview> {
         match self.file_manager.get_photo_paths_to_review() {
             Ok(paths) => paths,
             Err(err) => {
