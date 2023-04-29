@@ -26,7 +26,13 @@ impl QueryRoot {
     }
 
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<String> {
-        self.file_manager.get_photo_paths_to_review().unwrap()
+        match self.file_manager.get_photo_paths_to_review() {
+            Ok(paths) => paths,
+            Err(err) => {
+                println!("Failed to retrieve photos_to_review: {}", err);
+                vec![]
+            }
+        }
     }
 }
 pub(crate) struct MutationRoot;

@@ -9,7 +9,7 @@ pub(crate) struct FileManager {
 impl FileManager {
     pub fn new() -> Self {
         FileManager {
-            root_dir: shellexpand::env("$HOME/pictures/photomanager-test/albumx")
+            root_dir: shellexpand::env("$HOME/pictures/photomanager-test")
                 .unwrap()
                 .to_string(),
         }
@@ -56,8 +56,13 @@ impl FileManager {
         .map(|img| img.path().parent().unwrap().to_str().unwrap().to_string())
         .collect::<Vec<String>>();
 
-        // TODO return error if no folders found
-        dbg!(&folders_with_review_images);
+        if folders_with_review_images.is_empty() {
+            return Err(format!(
+                "No folders with images to review found under root folder {}",
+                self.root_dir
+            )
+            .into());
+        }
         Ok(folders_with_review_images[0].clone())
     }
 }
