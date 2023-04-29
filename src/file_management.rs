@@ -23,10 +23,11 @@ impl FileManager {
             self.root_dir.as_str(),
             &["*.{png,jpg,jpeg,gif}", "!best/*", "!soso/*"],
         )
-        .max_depth(10)
+        .max_depth(1)
         .follow_links(true)
         .build()?
         .filter_map(Result::ok)
+        .take(10)
         .map(|img| img.path().to_str().unwrap().to_string())
         .collect::<Vec<String>>();
 
