@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::os::unix::fs::DirBuilderExt;
 use std::path::PathBuf;
 
 use async_graphql::SimpleObject;

@@ -21,7 +21,7 @@ impl QueryRoot {
           hello
         }
     */
-    async fn hello(&self, _ctx: &Context<'_>) -> &'static str {
+    async fn hello(&self, _ctx: &Context<'_>) -> &str {
         "Hello world"
     }
 
