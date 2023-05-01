@@ -17,14 +17,13 @@ pub(crate) fn new_query_root() -> QueryRoot {
 #[Object]
 impl QueryRoot {
     /*
-        {
-          hello
-        }
-    */
-    async fn hello(&self, _ctx: &Context<'_>) -> &str {
-        "Hello world"
+    {
+      photosToReview{
+       url
+       album
+      }
     }
-
+    */
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<ImageToReview> {
         match self.file_manager.get_photo_paths_to_review() {
             Ok(paths) => paths,
