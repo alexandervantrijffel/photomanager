@@ -16,14 +16,13 @@ pub(crate) fn new_query_root() -> QueryRoot {
 
 #[Object]
 impl QueryRoot {
-    /*
-    {
-      photosToReview{
-       url
-       album
-      }
-    }
-    */
+    /// {
+    ///   photosToReview{
+    ///    url
+    ///    album
+    ///   }
+    /// }
+    #[graphql(name = "photosToReview")]
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<ImageToReview> {
         match self.file_manager.get_photo_paths_to_review() {
             Ok(paths) => paths,
@@ -36,14 +35,14 @@ impl QueryRoot {
 }
 pub(crate) struct MutationRoot;
 
-#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
 pub enum ReviewScore {
     Best,
     Soso,
     Worst,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PhotoReview {
     pub path: String,
     pub score: ReviewScore,
@@ -51,8 +50,13 @@ pub struct PhotoReview {
 
 #[Object]
 impl MutationRoot {
+    ///     mutation {
+    ///       reviewPhoto(path:"/albumx/testphoto.jpg", score: WORST)
+    ///     }
+    #[graphql(name = "reviewPhoto")]
     async fn review_photo(&self, _ctx: &Context<'_>, path: String, score: ReviewScore) -> bool {
         let _review = PhotoReview { path, score };
+        println!("Reviewing photo: {:?}", _review);
         true
     }
 }
