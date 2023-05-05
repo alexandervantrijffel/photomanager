@@ -34,11 +34,31 @@ impl FileManager {
                 .unwrap()
                 .to_string(),
         }
+        // TODO create root_dir, best, soso dirs, archived folder
+    }
+
+    fn full_path(&self, relative_path: &str) -> String {
+        format!("{}{}", self.root_dir, relative_path)
     }
 
     pub fn review_photo(&self, review: &PhotoReview) {
         println!("Reviewing photo: {:?}", review);
+        let path = self.full_path(review.path.as_str());
+        let dir = PathBuf::from(&path).parent().unwrap();
+        let new_path = match review.score {
+            ReviewScore::Best => dir.join("best"),
+            ReviewScore::Soso => dir.join("soso"),
+            // TODO archive worst photos
+            ReviewScore::Worst => dir.join("worst"),
+        }
+        .join(PathBuf::from(path).file_name().unwrap())
+        .to_str()
+        .unwrap();
+        println!("Moving photo from {} to {}", path, new_path);
     }
+}
+
+impl FileManager {
     pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>, Box<dyn Error>> {
         let image_files = self.find_image_files()?;
         Ok(image_files
