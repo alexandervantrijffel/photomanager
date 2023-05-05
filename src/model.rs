@@ -50,7 +50,7 @@ impl MutationRoot {
     #[graphql(name = "reviewPhoto")]
     async fn review_photo(&self, _ctx: &Context<'_>, path: String, score: ReviewScore) -> bool {
         let review = PhotoReview { path, score };
-        println!("Reviewing photo: {:?}", review);
+        _ctx.data::<FileManager>().unwrap().review_photo(&review);
         true
     }
 }
