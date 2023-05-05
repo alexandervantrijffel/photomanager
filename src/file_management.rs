@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::{bail, Context, Result};
 use std::path::PathBuf;
 
 use async_graphql::{Enum, SimpleObject};
@@ -59,8 +59,10 @@ impl FileManager {
 }
 
 impl FileManager {
-    pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>, Box<dyn Error>> {
-        let image_files = self.find_image_files()?;
+    pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>> {
+        let image_files = self
+            .find_image_files()
+            .with_context(|| "failed to find image files")?;
         Ok(image_files
             .iter()
             .map(|f| ImageToReview {
@@ -77,7 +79,7 @@ impl FileManager {
             .collect::<Vec<ImageToReview>>())
     }
 
-    fn find_image_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
+    fn find_image_files(&self) -> Result<Vec<String>> {
         let image_files_pattern = "*.{png,jpg,jpeg,gif}";
         let folder_with_review_images =
             self.find_next_folder_path_with_images_to_review(image_files_pattern)?;
@@ -100,7 +102,7 @@ impl FileManager {
     fn find_next_folder_path_with_images_to_review(
         &self,
         images_files_pattern: &str,
-    ) -> Result<String, Box<dyn Error>> {
+    ) -> Result<String> {
         let folders_with_review_images = GlobWalkerBuilder::from_patterns(
             self.root_dir.as_str(),
             &[
@@ -116,11 +118,10 @@ impl FileManager {
         .collect::<Vec<String>>();
 
         if folders_with_review_images.is_empty() {
-            return Err(format!(
+            bail!(format!(
                 "No folders with images to review found under root folder {}",
                 self.root_dir
-            )
-            .into());
+            ));
         }
         Ok(folders_with_review_images[0].clone())
     }
