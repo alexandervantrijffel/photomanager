@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use async_graphql::SimpleObject;
+use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
 
 pub(crate) struct FileManager {
@@ -14,6 +14,19 @@ pub(crate) struct ImageToReview {
     album: String,
 }
 
+#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
+pub enum ReviewScore {
+    Best,
+    Soso,
+    Worst,
+}
+
+#[derive(Debug, Clone)]
+pub struct PhotoReview {
+    pub path: String,
+    pub score: ReviewScore,
+}
+
 impl FileManager {
     pub fn new() -> Self {
         FileManager {
@@ -21,6 +34,10 @@ impl FileManager {
                 .unwrap()
                 .to_string(),
         }
+    }
+
+    pub fn review_photo(&self, review: &PhotoReview) {
+        println!("Reviewing photo: {:?}", review);
     }
     pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>, Box<dyn Error>> {
         let image_files = self.find_image_files()?;

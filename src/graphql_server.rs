@@ -1,7 +1,6 @@
-use crate::model::{new_query_root, MutationRoot, ServiceSchema};
+use crate::model::{new_schema, ServiceSchema};
 // use async_graphql::*;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
-use async_graphql::{EmptySubscription, Schema};
 // use async_graphql_axum::*;
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 // use axum::debug_handler;
@@ -45,7 +44,6 @@ async fn graphql_ws_handler(
 }
 
 pub(crate) async fn run_graphql_server(router: Router) -> Router {
-    let schema = Schema::build(new_query_root(), MutationRoot, EmptySubscription).finish();
     // async-graphql-examples
     // https://github.com/async-graphql/examples
     println!(
@@ -54,5 +52,5 @@ pub(crate) async fn run_graphql_server(router: Router) -> Router {
     router
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route("/ws", get(graphql_ws_handler))
-        .layer(Extension(schema))
+        .layer(Extension(new_schema()))
 }
