@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
 
+#[macro_use(concat_string)]
+
 pub(crate) struct FileManager {
     root_dir: String,
 }
@@ -44,17 +46,21 @@ impl FileManager {
     pub fn review_photo(&self, review: &PhotoReview) {
         println!("Reviewing photo: {:?}", review);
         let path = self.full_path(review.path.as_str());
-        let dir = PathBuf::from(&path).parent().unwrap();
-        let new_path = match review.score {
-            ReviewScore::Best => dir.join("best"),
-            ReviewScore::Soso => dir.join("soso"),
-            // TODO archive worst photos
-            ReviewScore::Worst => dir.join("worst"),
-        }
-        .join(PathBuf::from(path).file_name().unwrap())
-        .to_str()
-        .unwrap();
-        println!("Moving photo from {} to {}", path, new_path);
+        let new_path = PathBuf::from(path.clone())
+            .parent()
+            .unwrap()
+            .join(match review.score {
+                ReviewScore::Best => "best",
+                ReviewScore::Soso => "soso",
+                // TODO archive worst photos
+                ReviewScore::Worst => "worst",
+            })
+            .join(PathBuf::from(&path).file_name().unwrap());
+        println!(
+            "Moving photo from {} to {}",
+            path,
+            new_path.to_str().unwrap()
+        );
     }
 }
 
