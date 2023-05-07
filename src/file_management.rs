@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
-use std::fs;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
@@ -31,9 +31,11 @@ pub struct PhotoReview {
 impl FileManager {
     pub fn new() -> Self {
         FileManager {
-            root_dir: shellexpand::env("$HOME/pictures/photomanager-test")
-                .unwrap()
-                .to_string(),
+            root_dir: shellexpand::env(
+                &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
+            )
+            .unwrap()
+            .to_string(),
         }
     }
 

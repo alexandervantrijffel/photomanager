@@ -9,9 +9,10 @@ anyhow = "1.0.71"
 async-graphql = "5.0.7"
 async-graphql-axum = "5.0.7"
 axum = {version="0.6.17",features= ["macros"]}
+dotenv = "0.15.0"
 globwalk = "0.8.1"
 hyper = "0.14.26"
 serde = {version="1.0.160", features=["derive"]}
 shellexpand = "3.1.0"
 tokio = { version = "1.28.0", features = ["full"] }
-tower-http = { version = "0.4.0", features = ["fs", "trace","cors"] }
+tower-http = { version = "0.4.0", features = ["fs", "cors"] }
