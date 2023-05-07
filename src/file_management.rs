@@ -38,12 +38,18 @@ impl FileManager {
     }
 
     fn full_path(&self, relative_path: &str) -> String {
-        format!("{}{:?}", self.root_dir, relative_path)
+        format!(
+            "{}{}",
+            self.root_dir,
+            relative_path
+                .strip_prefix("/media")
+                .unwrap_or(relative_path)
+        )
     }
 
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
-        let path = self.full_path(review.path.as_str());
+        let path = self.full_path(&review.path);
         let new_folder = PathBuf::from(&path)
             .parent()
             .unwrap()
