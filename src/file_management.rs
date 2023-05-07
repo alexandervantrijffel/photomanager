@@ -1,10 +1,9 @@
 use anyhow::{bail, Context, Result};
+use std::fs;
 use std::path::PathBuf;
 
 use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
-
-#[macro_use(concat_string)]
 
 pub(crate) struct FileManager {
     root_dir: String,
@@ -43,10 +42,10 @@ impl FileManager {
         format!("{}{}", self.root_dir, relative_path)
     }
 
-    pub fn review_photo(&self, review: &PhotoReview) {
+    pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
         let path = self.full_path(review.path.as_str());
-        let new_path = PathBuf::from(path.clone())
+        let new_folder = PathBuf::from(path.clone())
             .parent()
             .unwrap()
             .join(match review.score {
@@ -54,13 +53,16 @@ impl FileManager {
                 ReviewScore::Soso => "soso",
                 // TODO archive worst photos
                 ReviewScore::Worst => "worst",
-            })
-            .join(PathBuf::from(&path).file_name().unwrap());
-        println!(
-            "Moving photo from {} to {}",
-            path,
-            new_path.to_str().unwrap()
-        );
+            });
+        fs::create_dir_all(&new_folder).with_context(|| {
+            format!(
+                "Failed to create media target folder '{}'",
+                new_folder.display()
+            )
+        })?;
+        let new_path = new_folder.join(PathBuf::from(&path).file_name().unwrap());
+        println!("Moving photo from {} to {}", path, new_path.display());
+        Ok(())
     }
 }
 

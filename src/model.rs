@@ -49,8 +49,16 @@ impl MutationRoot {
     ///     }
     #[graphql(name = "reviewPhoto")]
     async fn review_photo(&self, _ctx: &Context<'_>, path: String, score: ReviewScore) -> bool {
-        let review = PhotoReview { path, score };
-        _ctx.data::<FileManager>().unwrap().review_photo(&review);
-        true
+        let review = PhotoReview {
+            path: path.clone(),
+            score,
+        };
+        match _ctx.data::<FileManager>().unwrap().review_photo(&review) {
+            Ok(_) => true,
+            Err(err) => {
+                println!("Failed to review photo '{}': {}", path, err);
+                false
+            }
+        }
     }
 }
