@@ -1,7 +1,7 @@
 use async_graphql::EmptySubscription;
 use async_graphql::{Context, Object, Schema};
 
-use crate::file_management::{FileManager, ImageToReview, PhotoReview, ReviewScore};
+use crate::file_management::{FileManager, PhotoReview, PhotosToReview, ReviewScore};
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
@@ -27,13 +27,16 @@ impl QueryRoot {
     ///   }
     /// }
     #[graphql(name = "photosToReview")]
-    async fn photos_to_review(&self, _ctx: &Context<'_>) -> Vec<ImageToReview> {
+    async fn photos_to_review(&self, _ctx: &Context<'_>) -> PhotosToReview {
         let fm = _ctx.data::<FileManager>().unwrap();
         match fm.get_photo_paths_to_review() {
             Ok(paths) => paths,
             Err(err) => {
                 println!("Failed to retrieve photos_to_review: {}", err);
-                vec![]
+                PhotosToReview {
+                    base_url: "".to_string(),
+                    photos: vec![],
+                }
             }
         }
     }

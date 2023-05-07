@@ -10,6 +10,12 @@ pub struct FileManager {
 }
 
 #[derive(SimpleObject)]
+pub struct PhotosToReview {
+    pub base_url: String,
+    pub photos: Vec<ImageToReview>,
+}
+
+#[derive(SimpleObject)]
 pub struct ImageToReview {
     url: String,
     album: String,
@@ -73,11 +79,11 @@ impl FileManager {
 }
 
 impl FileManager {
-    pub fn get_photo_paths_to_review(&self) -> Result<Vec<ImageToReview>> {
+    pub fn get_photo_paths_to_review(&self) -> Result<PhotosToReview> {
         let image_files = self
             .find_image_files()
             .with_context(|| "failed to find image files")?;
-        Ok(image_files
+        let photos = image_files
             .iter()
             .map(|f| ImageToReview {
                 url: f.replace(&self.root_dir, "/media"),
@@ -90,7 +96,13 @@ impl FileManager {
                     .to_string()
                 },
             })
-            .collect::<Vec<ImageToReview>>())
+            .collect::<Vec<ImageToReview>>();
+
+        Ok(PhotosToReview {
+            base_url: env::var("PUBLIC_URL")
+                .expect("'PUBLIC_URL' environment variable is required"),
+            photos,
+        })
     }
 
     fn find_image_files(&self) -> Result<Vec<String>> {
