@@ -123,6 +123,7 @@ impl FileManager {
                 format!("**/{}", images_files_pattern),
                 "!**/best/".to_string(),
                 "!**/soso/".to_string(),
+                "!**/worst/".to_string(),
             ],
         )
         .build()?
