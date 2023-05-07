@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
 
-pub(crate) struct FileManager {
+pub struct FileManager {
     root_dir: String,
 }
 
 #[derive(SimpleObject)]
-pub(crate) struct ImageToReview {
+pub struct ImageToReview {
     url: String,
     album: String,
 }
@@ -38,13 +38,13 @@ impl FileManager {
     }
 
     fn full_path(&self, relative_path: &str) -> String {
-        format!("{}{}", self.root_dir, relative_path)
+        format!("{}{:?}", self.root_dir, relative_path)
     }
 
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
         let path = self.full_path(review.path.as_str());
-        let new_folder = PathBuf::from(path.clone())
+        let new_folder = PathBuf::from(&path)
             .parent()
             .unwrap()
             .join(match review.score {

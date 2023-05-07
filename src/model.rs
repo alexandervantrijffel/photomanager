@@ -3,9 +3,9 @@ use async_graphql::{Context, Object, Schema};
 
 use crate::file_management::{FileManager, ImageToReview, PhotoReview, ReviewScore};
 
-pub(crate) type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
+pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
-pub(crate) fn new_schema() -> ServiceSchema {
+pub fn new_schema() -> ServiceSchema {
     Schema::build(
         QueryRoot::default(),
         MutationRoot::default(),
@@ -16,7 +16,7 @@ pub(crate) fn new_schema() -> ServiceSchema {
 }
 
 #[derive(Copy, Default, Clone)]
-pub(crate) struct QueryRoot {}
+pub struct QueryRoot {}
 
 #[Object]
 impl QueryRoot {
@@ -40,7 +40,7 @@ impl QueryRoot {
 }
 
 #[derive(Default)]
-pub(crate) struct MutationRoot {}
+pub struct MutationRoot {}
 
 #[Object]
 impl MutationRoot {

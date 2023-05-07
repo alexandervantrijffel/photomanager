@@ -36,7 +36,7 @@ async fn graphql_ws_handler(
     websocket
         .protocols(ALL_WEBSOCKET_PROTOCOLS)
         .on_upgrade(move |stream| {
-            GraphQLWebSocket::new(stream, schema.clone(), protocol)
+            GraphQLWebSocket::new(stream, schema, protocol)
                 // for adding token-from-header support, see https://github.com/async-graphql/examples/tree/master/models/token
                 // .on_connection_init(on_connection_init)
                 .serve()
