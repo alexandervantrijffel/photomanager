@@ -35,7 +35,6 @@ impl FileManager {
                 .unwrap()
                 .to_string(),
         }
-        // TODO create root_dir, best, soso dirs, archived folder
     }
 
     fn full_path(&self, relative_path: &str) -> String {
@@ -51,7 +50,6 @@ impl FileManager {
             .join(match review.score {
                 ReviewScore::Best => "best",
                 ReviewScore::Soso => "soso",
-                // TODO archive worst photos
                 ReviewScore::Worst => "worst",
             });
         fs::create_dir_all(&new_folder).with_context(|| {

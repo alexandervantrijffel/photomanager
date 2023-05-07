@@ -2,6 +2,7 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::*;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::ServeDir;
 
 use crate::graphql_server::run_graphql_server;
 use hyper::{Method, StatusCode};
@@ -9,17 +10,24 @@ use serde::Serialize;
 use tokio::signal;
 
 pub(crate) async fn run_http_server() {
-    let app = Router::new();
-    let app = run_graphql_server(app).await;
-    let app = app.route("/health", get(health_handler)).layer(
-        CorsLayer::new().allow_origin(Any).allow_methods(vec![
+    let app = Router::new()
+        .nest_service(
+            "/media",
+            ServeDir::new("/home/lex/pictures/photomanager-test"),
+        )
+        .route("/health", get(health_handler))
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods(vec![
             Method::GET,
             Method::POST,
             Method::DELETE,
-        ]),
-    );
+        ]));
+
+    // ServerDir::new(
+    //     shellexpand::env("$HOME/pictures/photomanager-test")
+    //         .unwrap()
+    //         .to_string(),
     Server::bind(&"0.0.0.0:8000".parse().unwrap())
-        .serve(app.into_make_service())
+        .serve(run_graphql_server(app).await.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
