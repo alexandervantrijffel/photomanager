@@ -20,12 +20,15 @@ pub struct QueryRoot {}
 
 #[Object]
 impl QueryRoot {
-    /// {
-    ///   photosToReview{
-    ///    url
-    ///    album
-    ///   }
-    /// }
+    ///{
+    ///  photosToReview{
+    ///    baseUrl
+    ///    photos{
+    ///      album
+    ///      url
+    ///    }
+    ///  }
+    ///}
     #[graphql(name = "photosToReview")]
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> PhotosToReview {
         let fm = _ctx.data::<FileManager>().unwrap();
