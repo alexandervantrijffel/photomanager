@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: photomanager
+  name: photomanager
+  namespace: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photomanager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: photomanager
+    spec:
+      containers:
+        - name: photomanager
+          image: registry.structura.dev/photomanager
+          env:
+            - name: MEDIA_ROOT
+              value: /src/media/photos/2019-family
+          ports:
+            - containerPort: 8998
+              name: webserver
+          volumeMounts:
+            - mountPath: /srv/media
+              name: jellyfin-pvc
+              subPath: media
+      volumes:
+        - name: jellyfin-pvc
+          persistentVolumeClaim:
+            claimName: jellyfin-pvc
+      nodeSelector:
+        jellyfin-media-data: "true"
