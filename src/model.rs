@@ -23,10 +23,12 @@ pub struct QueryRoot {}
 impl QueryRoot {
     ///{
     ///  photosToReview{
-    ///    baseUrl
-    ///    photos{
-    ///      album
-    ///      url
+    ///     output {
+    ///        baseUrl
+    ///        photos{
+    ///          album
+    ///          url
+    ///        }
     ///    }
     ///  }
     ///}
@@ -66,7 +68,10 @@ pub struct MutationResponse<T: OutputType> {
 #[Object]
 impl MutationRoot {
     ///     mutation {
-    ///       reviewPhoto(path:"/albumx/testphoto.jpg", score: WORST)
+    ///       reviewPhoto(path:"/albumx/testphoto.jpg", score: WORST) {
+    ///          success
+    ///          output
+    ///       }
     ///     }
     #[graphql(name = "reviewPhoto")]
     async fn review_photo(

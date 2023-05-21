@@ -124,7 +124,7 @@ impl FileManager {
         let mut excludes = self
             .get_exclude_folder_names()
             .iter()
-            .map(|f| format!("!{}/*", f))
+            .map(|f| format!("!**/{}/*", f))
             .collect::<Vec<String>>();
 
         excludes.insert(0, image_files_pattern.to_string());
