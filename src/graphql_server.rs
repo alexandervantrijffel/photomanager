@@ -47,7 +47,7 @@ pub(crate) async fn run_graphql_server(router: Router) -> Router {
     // async-graphql-examples
     // https://github.com/async-graphql/examples
     println!(
-        "Photomanager graphql server.\nVisit http://localhost:8000/graphql to use the playground."
+        "Photomanager graphql server.\nVisit http://localhost:8998/graphql to use the playground."
     );
     router
         .route("/graphql", get(graphql_playground).post(graphql_handler))

@@ -18,7 +18,7 @@ pub(crate) async fn run_http_server() {
         )
         .route("/health", get(health_handler));
 
-    Server::bind(&"0.0.0.0:8000".parse().unwrap())
+    Server::bind(&"0.0.0.0:8998".parse().unwrap())
         .serve(
             run_graphql_server(app)
                 .await
