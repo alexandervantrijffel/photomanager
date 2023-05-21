@@ -16,3 +16,12 @@ serde = {version="1.0.160", features=["derive"]}
 shellexpand = "3.1.0"
 tokio = { version = "1.28.0", features = ["full"] }
 tower-http = { version = "0.4.0", features = ["fs", "cors","trace"] }
+
+[profile.release]
+# debug = true      # Enable debug symbols
+# opt-level = 3     # Optimize for speed
+# opt-level = 'z'   # Optimize for size
+lto = true          # Enable link-time optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations
+panic = 'abort'     # Abort on panic
+strip = true        # Strip symbols from binary*
