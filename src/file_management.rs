@@ -123,7 +123,7 @@ impl FileManager {
 
         let image_files = GlobWalkerBuilder::from_patterns(
             folder_with_review_images.as_str(),
-            &[image_files_pattern, "!best/*", "!nah/*"],
+            &[image_files_pattern, "!best/*", "!nah/*", "!.recycle/*"],
         )
         .max_depth(1)
         .follow_links(true)

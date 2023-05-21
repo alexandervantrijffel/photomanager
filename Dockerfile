@@ -5,4 +5,7 @@ RUN cargo build --release --no-default-features
 
 FROM gcr.io/distroless/cc
 COPY --from=build-env /app/target/release/photomanager /
+
+EXPOSE 8998
+
 CMD ["./photomanager"]
