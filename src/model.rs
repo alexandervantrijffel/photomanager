@@ -31,15 +31,21 @@ impl QueryRoot {
     ///  }
     ///}
     #[graphql(name = "photosToReview")]
-    async fn photos_to_review(&self, _ctx: &Context<'_>) -> PhotosToReview {
+    async fn photos_to_review(&self, _ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
         let fm = _ctx.data::<FileManager>().unwrap();
         match fm.get_photo_paths_to_review() {
-            Ok(paths) => paths,
+            Ok(paths) => MutationResponse {
+                success: true,
+                output: paths,
+            },
             Err(err) => {
                 println!("Failed to retrieve photos_to_review: {}", err);
-                PhotosToReview {
-                    base_url: "".to_string(),
-                    photos: vec![],
+                MutationResponse {
+                    success: false,
+                    output: PhotosToReview {
+                        base_url: "".to_string(),
+                        photos: vec![],
+                    },
                 }
             }
         }
@@ -50,6 +56,8 @@ impl QueryRoot {
 pub struct MutationRoot {}
 
 #[derive(SimpleObject)]
+#[graphql(concrete(name = "MutationReponseString", params(String)))]
+#[graphql(concrete(name = "MutationResponsePhotosToReview", params(PhotosToReview)))]
 pub struct MutationResponse<T: OutputType> {
     success: bool,
     output: T,
