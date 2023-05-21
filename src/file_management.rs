@@ -58,6 +58,9 @@ impl FileManager {
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
         let path = self.full_path(&review.path);
+        if !PathBuf::from(&path).exists() {
+            bail!("Photo not found: {}", path);
+        }
         let new_folder = PathBuf::from(&path)
             .parent()
             .unwrap()

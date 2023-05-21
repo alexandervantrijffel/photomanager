@@ -2,6 +2,7 @@ use async_graphql::EmptySubscription;
 use async_graphql::{Context, Object, Schema};
 
 use crate::file_management::{FileManager, PhotoReview, PhotosToReview, ReviewScore};
+use async_graphql::SimpleObject;
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
@@ -48,22 +49,39 @@ impl QueryRoot {
 #[derive(Default)]
 pub struct MutationRoot {}
 
+#[derive(SimpleObject)]
+pub struct MutationResponse {
+    success: bool,
+    message: String,
+}
+
 #[Object]
 impl MutationRoot {
     ///     mutation {
     ///       reviewPhoto(path:"/albumx/testphoto.jpg", score: WORST)
     ///     }
     #[graphql(name = "reviewPhoto")]
-    async fn review_photo(&self, _ctx: &Context<'_>, path: String, score: ReviewScore) -> bool {
+    async fn review_photo(
+        &self,
+        _ctx: &Context<'_>,
+        path: String,
+        score: ReviewScore,
+    ) -> MutationResponse {
         let review = PhotoReview {
             path: path.clone(),
             score,
         };
         match _ctx.data::<FileManager>().unwrap().review_photo(&review) {
-            Ok(_) => true,
+            Ok(_) => MutationResponse {
+                success: true,
+                message: "".to_string(),
+            },
             Err(err) => {
                 println!("Failed to review photo '{}': {}", path, err);
-                false
+                MutationResponse {
+                    success: false,
+                    message: err.to_string(),
+                }
             }
         }
     }
