@@ -24,7 +24,7 @@ pub struct ImageToReview {
 #[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
 pub enum ReviewScore {
     Best,
-    Soso,
+    Nah,
     Worst,
 }
 
@@ -66,7 +66,7 @@ impl FileManager {
             .unwrap()
             .join(match review.score {
                 ReviewScore::Best => "best",
-                ReviewScore::Soso => "soso",
+                ReviewScore::Nah => "nah",
                 ReviewScore::Worst => "worst",
             });
         fs::create_dir_all(&new_folder).with_context(|| {
@@ -115,7 +115,7 @@ impl FileManager {
 
         let image_files = GlobWalkerBuilder::from_patterns(
             folder_with_review_images.as_str(),
-            &[image_files_pattern, "!best/*", "!soso/*"],
+            &[image_files_pattern, "!best/*", "!nah/*"],
         )
         .max_depth(1)
         .follow_links(true)
@@ -137,7 +137,7 @@ impl FileManager {
             &[
                 format!("**/{}", images_files_pattern),
                 "!**/best/".to_string(),
-                "!**/soso/".to_string(),
+                "!**/nah/".to_string(),
                 "!**/worst/".to_string(),
             ],
         )
