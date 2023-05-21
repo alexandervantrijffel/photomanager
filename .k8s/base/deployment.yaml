@@ -22,7 +22,7 @@ spec:
           image: registry.structura.dev/photomanager
           env:
             - name: MEDIA_ROOT
-              value: /src/media/photos/2019-family
+              value: /srv/media/photos/2019-family
           ports:
             - containerPort: 8998
               name: webserver
