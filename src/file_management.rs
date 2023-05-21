@@ -77,6 +77,14 @@ impl FileManager {
         })?;
         let new_path = new_folder.join(PathBuf::from(&path).file_name().unwrap());
         println!("Moving photo from {} to {}", path, new_path.display());
+        fs::rename(&path, &new_path).with_context(|| {
+            format!(
+                "Failed to move photo from {} to {}",
+                path,
+                new_path.display()
+            )
+        })?;
+
         Ok(())
     }
 }
