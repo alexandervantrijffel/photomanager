@@ -1,3 +1,5 @@
+use std::env;
+
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::*;
@@ -11,11 +13,14 @@ use serde::Serialize;
 use tokio::signal;
 
 pub(crate) async fn run_http_server() {
+    let media_root_dir = shellexpand::env(
+        &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
+    )
+    .unwrap()
+    .to_string();
+
     let app = Router::new()
-        .nest_service(
-            "/media",
-            ServeDir::new("/home/lex/pictures/photomanager-test"),
-        )
+        .nest_service("/media", ServeDir::new(media_root_dir))
         .route("/health", get(health_handler));
 
     Server::bind(&"0.0.0.0:8998".parse().unwrap())
