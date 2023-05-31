@@ -32,6 +32,20 @@ spec:
             - mountPath: /srv/media
               name: jellyfin-pvc
               subPath: media
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: jellyfin-pvc
           persistentVolumeClaim:

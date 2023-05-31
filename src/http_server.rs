@@ -21,7 +21,8 @@ pub(crate) async fn run_http_server() {
 
     let app = Router::new()
         .nest_service("/media", ServeDir::new(media_root_dir))
-        .route("/health", get(health_handler));
+        .route("/healthz", get(liveness_handler))
+        .route("/readyz", get(ready_handler));
 
     Server::bind(&"0.0.0.0:8998".parse().unwrap())
         .serve(
@@ -62,12 +63,10 @@ async fn shutdown_signal() {
     println!("signal received, starting graceful shutdown");
 }
 
-#[derive(Serialize)]
-struct Health {
-    healthy: bool,
+async fn ready_handler() -> impl IntoResponse {
+    (StatusCode::OK, "OK")
 }
 
-async fn health_handler() -> impl IntoResponse {
-    let health = Health { healthy: true };
-    (StatusCode::OK, Json(health))
+async fn liveness_handler() -> impl IntoResponse {
+    (StatusCode::OK, "OK")
 }
