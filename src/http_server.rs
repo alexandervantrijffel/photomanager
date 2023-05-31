@@ -9,7 +9,6 @@ use tower_http::trace::TraceLayer;
 
 use crate::graphql_server::run_graphql_server;
 use hyper::StatusCode;
-use serde::Serialize;
 use tokio::signal;
 
 pub(crate) async fn run_http_server() {
