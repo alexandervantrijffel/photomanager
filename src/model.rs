@@ -76,7 +76,7 @@ impl MutationRoot {
     #[graphql(name = "reviewPhoto")]
     async fn review_photo(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         path: String,
         score: ReviewScore,
     ) -> MutationResponse<String> {
@@ -84,13 +84,39 @@ impl MutationRoot {
             path: path.clone(),
             score,
         };
-        match _ctx.data::<FileManager>().unwrap().review_photo(&review) {
+        match ctx.data::<FileManager>().unwrap().review_photo(&review) {
             Ok(_) => MutationResponse {
                 success: true,
                 output: "".to_string(),
             },
             Err(err) => {
                 println!("Failed to review photo '{}': {}", path, err);
+                MutationResponse {
+                    success: false,
+                    output: err.to_string(),
+                }
+            }
+        }
+    }
+
+    #[graphql(name = "undo")]
+    async fn undo(
+        &self,
+        ctx: &Context<'_>,
+        path: String,
+        score: ReviewScore,
+    ) -> MutationResponse<String> {
+        let review = PhotoReview {
+            path: path.clone(),
+            score,
+        };
+        match ctx.data::<FileManager>().unwrap().undo(&review) {
+            Ok(_) => MutationResponse {
+                success: true,
+                output: "".to_string(),
+            },
+            Err(err) => {
+                println!("Failed to undo review photo '{}': {}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),

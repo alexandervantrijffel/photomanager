@@ -44,7 +44,9 @@ impl FileManager {
             .to_string(),
         }
     }
+}
 
+impl FileManager {
     fn full_path(&self, relative_path: &str) -> String {
         format!(
             "{}{}",
@@ -55,36 +57,70 @@ impl FileManager {
         )
     }
 
+    fn source_and_destination_paths(
+        &self,
+        review: &PhotoReview,
+    ) -> Result<(String, PathBuf, PathBuf, PathBuf)> {
+        let full_path = self.full_path(&review.path);
+        let source_folder = match PathBuf::from(&full_path).parent() {
+            Some(parent) => parent.to_path_buf(),
+            None => bail!("Parent folder not found for path: {}", full_path),
+        };
+
+        let destination_folder = source_folder.join(match review.score {
+            ReviewScore::Best => "best",
+            ReviewScore::Nah => "nah",
+            ReviewScore::Worst => "worst",
+        });
+
+        let destination_file =
+            destination_folder.join(PathBuf::from(&full_path).file_name().unwrap());
+        Ok((
+            full_path,
+            source_folder,
+            destination_folder,
+            destination_file,
+        ))
+    }
+
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
-        let path = self.full_path(&review.path);
-        if !PathBuf::from(&path).exists() {
-            bail!("Photo not found: {}", path);
+        let full_path = self.full_path(&review.path);
+        if !PathBuf::from(&full_path).exists() {
+            bail!("Photo not found: {full_path}");
         }
-        let new_folder = PathBuf::from(&path)
-            .parent()
-            .unwrap()
-            .join(match review.score {
-                ReviewScore::Best => "best",
-                ReviewScore::Nah => "nah",
-                ReviewScore::Worst => "worst",
-            });
-        fs::create_dir_all(&new_folder).with_context(|| {
+
+        let paths = self.source_and_destination_paths(review)?;
+        fs::create_dir_all(&paths.1).with_context(|| {
             format!(
                 "Failed to create media target folder '{}'",
-                new_folder.display()
-            )
-        })?;
-        let new_path = new_folder.join(PathBuf::from(&path).file_name().unwrap());
-        println!("Moving photo from {} to {}", path, new_path.display());
-        fs::rename(&path, &new_path).with_context(|| {
-            format!(
-                "Failed to move photo from {} to {}",
-                path,
-                new_path.display()
+                &paths.1.display()
             )
         })?;
 
+        let destination_file = paths.3.display().to_string();
+        println!("Moving photo from {} to {}", full_path, destination_file);
+        fs::rename(&full_path, &destination_file).with_context(|| {
+            format!(
+                "Failed to move photo from {} to {}",
+                full_path, destination_file
+            )
+        })?;
+
+        Ok(())
+    }
+
+    pub fn undo(&self, review: &PhotoReview) -> Result<()> {
+        println!("undoing review: {:?}", review);
+        let folders = self.source_and_destination_paths(review)?;
+        let source_file = folders.3.display().to_string();
+        if !PathBuf::from(&source_file).exists() {
+            bail!("Photo not found: {source_file}");
+        }
+        println!("Moving photo from {} to {}", source_file, folders.0);
+        fs::rename(&source_file, &folders.0).with_context(|| {
+            format!("Failed to move photo from {} to {}", source_file, folders.0)
+        })?;
         Ok(())
     }
 }
@@ -119,7 +155,7 @@ impl FileManager {
     fn find_image_files(&self) -> Result<Vec<String>> {
         let folder_with_review_images = self.find_next_folder_path_with_images_to_review()?;
 
-        let mut image_files = fs::read_dir(&folder_with_review_images)?
+        let mut image_files = fs::read_dir(folder_with_review_images)?
             .filter_map(Result::ok)
             .filter(|entry| {
                 let path = entry.path();
