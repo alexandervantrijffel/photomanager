@@ -117,27 +117,25 @@ impl FileManager {
     }
 
     fn find_image_files(&self) -> Result<Vec<String>> {
-        let image_files_pattern = "*.{png,jpg,jpeg,gif}";
-        let folder_with_review_images =
-            self.find_next_folder_path_with_images_to_review(image_files_pattern)?;
+        let folder_with_review_images = self.find_next_folder_path_with_images_to_review()?;
 
-        let mut excludes = self
-            .get_exclude_folder_names()
-            .iter()
-            .map(|f| format!("!**/{}/*", f))
+        let mut image_files = fs::read_dir(&folder_with_review_images)?
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                let path = entry.path();
+                path.is_file()
+                    && path.extension().map_or(false, |ext| {
+                        ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif"
+                    })
+            })
+            .map(|entry| entry.path().to_str().unwrap().to_string())
             .collect::<Vec<String>>();
 
-        excludes.insert(0, image_files_pattern.to_string());
+        image_files.sort();
 
-        let image_files =
-            GlobWalkerBuilder::from_patterns(folder_with_review_images.as_str(), &excludes[..])
-                .max_depth(1)
-                .follow_links(true)
-                .build()?
-                .filter_map(Result::ok)
-                .take(10)
-                .map(|img| img.path().to_str().unwrap().to_string())
-                .collect::<Vec<String>>();
+        if image_files.len() > 10 {
+            image_files.resize(10, String::new());
+        }
 
         Ok(image_files)
     }
@@ -150,18 +148,14 @@ impl FileManager {
             ".recycle".to_string(),
         ]
     }
-
-    fn find_next_folder_path_with_images_to_review(
-        &self,
-        images_files_pattern: &str,
-    ) -> Result<String> {
+    fn find_next_folder_path_with_images_to_review(&self) -> Result<String> {
         let mut excludes = self
             .get_exclude_folder_names()
             .iter()
             .map(|f| format!("!**/{}/", f))
             .collect::<Vec<String>>();
 
-        excludes.insert(0, format!("**/{}", images_files_pattern));
+        excludes.insert(0, format!("**/{}", "*.{png,jpg,jpeg,gif}"));
 
         let folders_with_review_images =
             GlobWalkerBuilder::from_patterns(self.root_dir.as_str(), &excludes)
