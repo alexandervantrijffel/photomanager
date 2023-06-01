@@ -47,42 +47,6 @@ impl FileManager {
 }
 
 impl FileManager {
-    fn full_path(&self, relative_path: &str) -> String {
-        format!(
-            "{}{}",
-            self.root_dir,
-            relative_path
-                .strip_prefix("/media")
-                .unwrap_or(relative_path)
-        )
-    }
-
-    fn source_and_destination_paths(
-        &self,
-        review: &PhotoReview,
-    ) -> Result<(String, PathBuf, PathBuf, PathBuf)> {
-        let full_path = self.full_path(&review.path);
-        let source_folder = match PathBuf::from(&full_path).parent() {
-            Some(parent) => parent.to_path_buf(),
-            None => bail!("Parent folder not found for path: {}", full_path),
-        };
-
-        let destination_folder = source_folder.join(match review.score {
-            ReviewScore::Best => "best",
-            ReviewScore::Nah => "nah",
-            ReviewScore::Worst => "worst",
-        });
-
-        let destination_file =
-            destination_folder.join(PathBuf::from(&full_path).file_name().unwrap());
-        Ok((
-            full_path,
-            source_folder,
-            destination_folder,
-            destination_file,
-        ))
-    }
-
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
         let full_path = self.full_path(&review.path);
@@ -208,5 +172,44 @@ impl FileManager {
             ));
         }
         Ok(folders_with_review_images[0].clone())
+    }
+}
+
+impl FileManager {
+    fn full_path(&self, relative_path: &str) -> String {
+        format!(
+            "{}{}",
+            self.root_dir,
+            relative_path
+                .strip_prefix("/media")
+                .unwrap_or(relative_path)
+        )
+    }
+
+    fn source_and_destination_paths(
+        &self,
+        review: &PhotoReview,
+    ) -> Result<(String, PathBuf, PathBuf, PathBuf)> {
+        let full_path = self.full_path(&review.path);
+
+        let source_folder = match PathBuf::from(&full_path).parent() {
+            Some(parent) => parent.to_path_buf(),
+            None => bail!("Parent folder not found for path: {}", full_path),
+        };
+
+        let destination_folder = source_folder.join(match review.score {
+            ReviewScore::Best => "best",
+            ReviewScore::Nah => "nah",
+            ReviewScore::Worst => "worst",
+        });
+
+        let destination_file =
+            destination_folder.join(PathBuf::from(&full_path).file_name().unwrap());
+        Ok((
+            full_path,
+            source_folder,
+            destination_folder,
+            destination_file,
+        ))
     }
 }
