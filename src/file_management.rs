@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use async_graphql::{Enum, SimpleObject};
@@ -13,6 +13,8 @@ pub struct FileManager {
 pub struct PhotosToReview {
     pub base_url: String,
     pub photos: Vec<ImageToReview>,
+    pub folder_image_count: usize,
+    pub folder_name: String,
 }
 
 #[derive(SimpleObject)]
@@ -90,8 +92,8 @@ impl FileManager {
 }
 
 impl FileManager {
-    pub fn get_photo_paths_to_review(&self) -> Result<PhotosToReview> {
-        let image_files = self
+    pub fn get_photos_to_review(&self) -> Result<PhotosToReview> {
+        let (folder_image_count, folder_path, image_files) = self
             .find_image_files()
             .with_context(|| "failed to find image files")?;
         let photos = image_files
@@ -109,17 +111,21 @@ impl FileManager {
             })
             .collect::<Vec<ImageToReview>>();
 
+        let folder_name = Path::new(&folder_path).file_name().unwrap().to_str();
+
         Ok(PhotosToReview {
             base_url: env::var("PUBLIC_URL")
                 .expect("'PUBLIC_URL' environment variable is required"),
             photos,
+            folder_image_count,
+            folder_name: folder_name.unwrap().to_string(),
         })
     }
 
-    fn find_image_files(&self) -> Result<Vec<String>> {
+    fn find_image_files(&self) -> Result<(usize, String, Vec<String>)> {
         let folder_with_review_images = self.find_next_folder_path_with_images_to_review()?;
 
-        let mut image_files = fs::read_dir(folder_with_review_images)?
+        let mut image_files = fs::read_dir(&folder_with_review_images)?
             .filter_map(Result::ok)
             .filter(|entry| {
                 let path = entry.path();
@@ -133,11 +139,13 @@ impl FileManager {
 
         image_files.sort();
 
+        let folder_image_count = image_files.len();
+
         if image_files.len() > 10 {
             image_files.resize(10, String::new());
         }
 
-        Ok(image_files)
+        Ok((folder_image_count, folder_with_review_images, image_files))
     }
 
     fn get_exclude_folder_names(&self) -> Vec<String> {

@@ -29,13 +29,15 @@ impl QueryRoot {
     ///          album
     ///          url
     ///        }
+    ///        folderName
+    ///        folderImageCount
     ///    }
     ///  }
     ///}
     #[graphql(name = "photosToReview")]
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
         let fm = _ctx.data::<FileManager>().unwrap();
-        match fm.get_photo_paths_to_review() {
+        match fm.get_photos_to_review() {
             Ok(paths) => MutationResponse {
                 success: true,
                 output: paths,
@@ -47,6 +49,8 @@ impl QueryRoot {
                     output: PhotosToReview {
                         base_url: "".to_string(),
                         photos: vec![],
+                        folder_name: "".to_string(),
+                        folder_image_count: 0,
                     },
                 }
             }
