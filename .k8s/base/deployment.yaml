@@ -35,14 +35,14 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8080
+              port: 8998
             initialDelaySeconds: 5
             periodSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /readyz
-              port: 8080
+              port: 8998
             initialDelaySeconds: 5
             periodSeconds: 5
             failureThreshold: 3
