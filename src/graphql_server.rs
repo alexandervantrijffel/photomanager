@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::model::{new_schema, ServiceSchema};
 // use async_graphql::*;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
@@ -47,7 +49,8 @@ pub(crate) async fn run_graphql_server(router: Router) -> Router {
     // async-graphql-examples
     // https://github.com/async-graphql/examples
     println!(
-        "Photomanager graphql server.\nVisit http://localhost:8998/graphql to use the playground."
+        "Photomanager graphql server.\nVisit {}/graphql to use the playground.",
+        env::var("PUBLIC_URL").expect("'PUBLIC_URL' environment variable is required"),
     );
     router
         .route("/graphql", get(graphql_playground).post(graphql_handler))
