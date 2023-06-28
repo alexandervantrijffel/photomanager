@@ -22,7 +22,7 @@ spec:
           image: registry.structura.dev/photomanager
           env:
             - name: MEDIA_ROOT
-              value: /srv/mediaphotos/photos
+              value: /srv/familyphotos/photos
             - name: PUBLIC_URL
               value: http://k3svc3.lan:8998
           ports:
