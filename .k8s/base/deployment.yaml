@@ -22,16 +22,16 @@ spec:
           image: registry.structura.dev/photomanager
           env:
             - name: MEDIA_ROOT
-              value: /srv/media/photos
+              value: /srv/mediaphotos/photos
             - name: PUBLIC_URL
               value: http://k3svc3.lan:8998
           ports:
             - containerPort: 8998
               name: webserver
           volumeMounts:
-            - mountPath: /srv/media
-              name: jellyfin-pvc
-              subPath: media
+            - mountPath: /srv/familyphotos/photos
+              name: familyphotos-pvc
+              subPath: photos
           livenessProbe:
             httpGet:
               path: /healthz
@@ -47,8 +47,8 @@ spec:
             periodSeconds: 5
             failureThreshold: 3
       volumes:
-        - name: jellyfin-pvc
+        - name: familyphotos-pvc
           persistentVolumeClaim:
-            claimName: jellyfin-pvc
+            claimName: familyphotos-pvc
       nodeSelector:
         jellyfin-media-data: "true"
