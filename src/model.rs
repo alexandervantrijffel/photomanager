@@ -43,7 +43,7 @@ impl QueryRoot {
                 output: paths,
             },
             Err(err) => {
-                println!("Failed to retrieve photos_to_review: {}", err);
+                println!("Failed to retrieve photos_to_review: {:#}", err);
                 MutationResponse {
                     success: false,
                     output: PhotosToReview {
@@ -94,7 +94,7 @@ impl MutationRoot {
                 output: "".to_string(),
             },
             Err(err) => {
-                println!("Failed to review photo '{}': {}", path, err);
+                println!("Failed to review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
@@ -120,7 +120,7 @@ impl MutationRoot {
                 output: "".to_string(),
             },
             Err(err) => {
-                println!("Failed to undo review photo '{}': {}", path, err);
+                println!("Failed to undo review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
