@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photomanager-debug
+  namespace: jellyfin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photomanager-debug
+  template:
+    metadata:
+      labels:
+        app: photomanager-debug
+    spec:
+      containers:
+        - name: photomanager-debug
+          image: busybox
+          command: ["/bin/sh", "-c", "--"]
+          args: ["while true; do sleep 30; done;"]
+          volumeMounts:
+            - mountPath: /srv/familyphotos/photos
+              name: familyphotos-pvc
+              subPath: photos
+      volumes:
+        - name: familyphotos-pvc
+          persistentVolumeClaim:
+            claimName: familyphotos-pvc
+      nodeSelector:
+        jellyfin-media-data: "true"
