@@ -57,14 +57,14 @@ impl FileManager {
         }
 
         let paths = self.source_and_destination_paths(review)?;
-        fs::create_dir_all(&paths.1).with_context(|| {
+        fs::create_dir_all(&paths.destination_folder).with_context(|| {
             format!(
                 "Failed to create media target folder '{}'",
-                &paths.1.display()
+                &paths.destination_folder.display()
             )
         })?;
 
-        let destination_file = paths.3.display().to_string();
+        let destination_file = paths.destination_file.display().to_string();
         println!("Moving photo from {} to {}", full_path, destination_file);
         fs::rename(&full_path, &destination_file).with_context(|| {
             format!(
@@ -78,14 +78,21 @@ impl FileManager {
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
         println!("undoing review: {:?}", review);
-        let folders = self.source_and_destination_paths(review)?;
-        let source_file = folders.3.display().to_string();
-        if !PathBuf::from(&source_file).exists() {
-            bail!("Photo not found: {source_file}");
+        let paths = self.source_and_destination_paths(review)?;
+        if !PathBuf::from(&paths.full_path).exists() {
+            bail!("Photo not found: {}", paths.full_path);
         }
-        println!("Moving photo from {} to {}", source_file, folders.0);
-        fs::rename(&source_file, &folders.0).with_context(|| {
-            format!("Failed to move photo from {} to {}", source_file, folders.0)
+        println!(
+            "Moving photo from {} to {}",
+            paths.full_path,
+            paths.destination_file.display()
+        );
+        fs::rename(&paths.full_path, &paths.destination_file).with_context(|| {
+            format!(
+                "Failed to move photo from {} to {}",
+                paths.full_path,
+                paths.destination_file.display()
+            )
         })?;
         Ok(())
     }
@@ -194,10 +201,7 @@ impl FileManager {
         )
     }
 
-    fn source_and_destination_paths(
-        &self,
-        review: &PhotoReview,
-    ) -> Result<(String, PathBuf, PathBuf, PathBuf)> {
+    fn source_and_destination_paths(&self, review: &PhotoReview) -> Result<DiskPaths> {
         let full_path = self.full_path(&review.path);
 
         let source_folder = match PathBuf::from(&full_path).parent() {
@@ -213,11 +217,18 @@ impl FileManager {
 
         let destination_file =
             destination_folder.join(PathBuf::from(&full_path).file_name().unwrap());
-        Ok((
+        let paths = DiskPaths {
             full_path,
-            source_folder,
             destination_folder,
             destination_file,
-        ))
+        };
+        Ok(paths)
     }
+}
+
+#[derive(Debug)]
+struct DiskPaths {
+    full_path: String,
+    destination_folder: PathBuf,
+    destination_file: PathBuf,
 }
