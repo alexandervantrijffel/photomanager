@@ -1,4 +1,4 @@
-FROM rust:1.70.0 as build-env
+FROM rust:1.71.0 as build-env
 WORKDIR /app
 COPY . /app
 
@@ -11,5 +11,7 @@ FROM gcr.io/distroless/cc
 COPY --from=build-env /app/target/release/photomanager /
 
 EXPOSE 8998
+
+ENV RUST_BACKTRACE=1
 
 CMD ["./photomanager"]
