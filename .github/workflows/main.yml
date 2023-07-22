@@ -28,11 +28,11 @@ jobs:
       - name: Export env vars
         id: set-outputs
         run: |
-          echo "github-sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
-          echo "app-name=${APP_NAME}" >> $GITHUB_OUTPUT
+          echo "github-sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "app-name=${APP_NAME}" >> "$GITHUB_OUTPUT"
 
   build-docker:
-    needs: [build-test]
+    needs: [ build-test ]
     uses: alexandervantrijffel/workflows/.github/workflows/deploy-docker-kustomize-v2.yaml@main
     with:
       app-name: ${{ needs.build-test.outputs.app-name }}
