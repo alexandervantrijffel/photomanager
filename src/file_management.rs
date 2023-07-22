@@ -53,7 +53,7 @@ impl FileManager {
         println!("Reviewing photo: {:?}", review);
         let full_path = self.full_path(&review.path);
         if !PathBuf::from(&full_path).exists() {
-            bail!("Photo not found: {full_path}");
+            bail!("Photo not found: {full_path}")
         }
 
         let paths = self.source_and_destination_paths(review)?;
@@ -80,7 +80,7 @@ impl FileManager {
         println!("undoing review: {:?}", review);
         let paths = self.source_and_destination_paths(review)?;
         if !PathBuf::from(&paths.full_path).exists() {
-            bail!("Photo not found: {}", paths.full_path);
+            bail!("Photo not found: {}", paths.full_path)
         }
         println!(
             "Moving photo from {} to {}",
@@ -184,7 +184,7 @@ impl FileManager {
             bail!(format!(
                 "No folders with images to review found under root folder {}",
                 self.root_dir
-            ));
+            ))
         }
         Ok(folders_with_review_images[0].clone())
     }
