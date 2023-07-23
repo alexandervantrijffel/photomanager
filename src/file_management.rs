@@ -189,9 +189,7 @@ impl FileManager {
 
         let folder_image_count = image_files.len();
 
-        if folder_image_count > 10 {
-            image_files.resize(10, String::new());
-        }
+        image_files.truncate(20);
 
         Ok((folder_image_count, folder_with_review_images, image_files))
     }
