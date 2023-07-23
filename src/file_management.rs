@@ -66,14 +66,55 @@ impl FileManager {
 
         let destination_file = paths.destination_file.display().to_string();
         println!("Moving photo from {} to {}", full_path, destination_file);
-        fs::rename(&full_path, &destination_file).with_context(|| {
+
+        self.move_file_prevent_overwrite_different_contents(&full_path, &destination_file)
+    }
+
+    fn move_file_prevent_overwrite_different_contents(
+        &self,
+        source_file: &str,
+        destination_file: &str,
+    ) -> Result<()> {
+        let mut final_destination_file = destination_file.to_string();
+        if Path::new(destination_file).exists() {
+            let source_file_contents = fs::read(source_file).unwrap();
+            let destination_file_contents = fs::read(destination_file).unwrap();
+            if source_file_contents != destination_file_contents {
+                final_destination_file = self.get_unique_filepath(destination_file)?; // format!("{}.new", &destination_file);
+                println!(
+                    "Destination file already exists, but contents are different. Moving to {}",
+                    final_destination_file
+                );
+            }
+        }
+        fs::rename(source_file, &final_destination_file).with_context(|| {
             format!(
                 "Failed to move photo from {} to {}",
-                full_path, destination_file
+                source_file, final_destination_file
             )
-        })?;
+        })
+    }
 
-        Ok(())
+    fn get_unique_filepath(&self, file_path: &str) -> Result<String> {
+        let path = Path::new(file_path);
+        let dir = path.parent().unwrap();
+        let title = path.file_stem().unwrap().to_str().unwrap();
+        let ext = path.extension().unwrap().to_str().unwrap();
+
+        let mut last_path_buf: PathBuf = PathBuf::new();
+        let found = (1..=20).find(|i| {
+            last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
+            !Path::new(&last_path_buf).exists()
+        });
+
+        match found {
+            Some(_) => Ok(last_path_buf.to_str().unwrap().to_string()),
+            None => bail!(
+                "Failed to find unique file path for: {}, last path: {}",
+                file_path,
+                last_path_buf.to_str().unwrap()
+            ),
+        }
     }
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
@@ -148,7 +189,7 @@ impl FileManager {
 
         let folder_image_count = image_files.len();
 
-        if image_files.len() > 10 {
+        if folder_image_count > 10 {
             image_files.resize(10, String::new());
         }
 
