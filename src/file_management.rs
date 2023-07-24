@@ -32,8 +32,21 @@ pub enum ReviewScore {
 
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
-    pub relative_path: String,
+    pub image: Image,
     pub score: ReviewScore,
+}
+
+#[derive(Debug, Clone)]
+pub struct Image {
+    pub relative_path: String,
+}
+
+impl Image {
+    pub fn new(relative_path: &str) -> Self {
+        Image {
+            relative_path: relative_path.to_string(),
+        }
+    }
 }
 
 impl FileManager {
@@ -51,7 +64,7 @@ impl FileManager {
 impl FileManager {
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
-        let full_path = self.full_path(&review.relative_path);
+        let full_path = self.full_path(&review.image.relative_path);
         if !PathBuf::from(&full_path).exists() {
             bail!("Photo not found: {full_path}")
         }
@@ -254,7 +267,7 @@ impl FileManager {
     }
 
     fn source_and_destination_paths(&self, review: &PhotoReview) -> Result<DiskPaths> {
-        let full_path = self.full_path(&review.relative_path);
+        let full_path = self.full_path(&review.image.relative_path);
 
         let source_folder = match PathBuf::from(&full_path).parent() {
             Some(parent) => parent.to_path_buf(),
