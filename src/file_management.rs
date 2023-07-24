@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
@@ -97,11 +97,22 @@ impl FileManager {
 
     fn get_unique_filepath(&self, file_path: &str) -> Result<String> {
         let path = Path::new(file_path);
-        let dir = path.parent().unwrap();
-        let title = path.file_stem().unwrap().to_str().unwrap();
-        let ext = path.extension().unwrap().to_str().unwrap();
+        let dir = path
+            .parent()
+            .ok_or_else(|| anyhow!("Failed to get parent dir"))?;
+        let title = path
+            .file_stem()
+            .and_then(|p| p.to_str())
+            .ok_or_else(|| anyhow!("no file title"))?;
+        let ext = path.extension().and_then(|p| p.to_str()).ok_or_else(|| {
+            anyhow!(
+                "Failed to get file extension for: {}",
+                path.to_str().unwrap()
+            )
+        })?;
 
         let mut last_path_buf: PathBuf = PathBuf::new();
+
         let found = (1..=20).find(|i| {
             last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
             !Path::new(&last_path_buf).exists()
@@ -203,11 +214,11 @@ impl FileManager {
         ]
     }
     fn find_next_folder_path_with_images_to_review(&self) -> Result<String> {
-        let mut excludes = self
+        let mut excludes: Vec<String> = self
             .get_exclude_folder_names()
             .iter()
             .map(|f| format!("!**/{}/", f))
-            .collect::<Vec<String>>();
+            .collect();
 
         excludes.insert(0, format!("**/{}", "*.{png,jpg,jpeg,gif}"));
 
@@ -215,17 +226,19 @@ impl FileManager {
             GlobWalkerBuilder::from_patterns(self.root_dir.as_str(), &excludes)
                 .build()?
                 .filter_map(Result::ok)
-                .take(1)
-                .map(|img| img.path().parent().unwrap().to_str().unwrap().to_string())
-                .collect::<Vec<String>>();
+                .find_map(|img| {
+                    img.path()
+                        .parent()
+                        .and_then(|p| p.to_str().map(|s| s.to_string()))
+                });
 
-        if folders_with_review_images.is_empty() {
-            bail!(format!(
+        match folders_with_review_images {
+            Some(folder) => Ok(folder),
+            None => bail!(
                 "No folders with images to review found under root folder {}",
                 self.root_dir
-            ))
+            ),
         }
-        Ok(folders_with_review_images[0].clone())
     }
 }
 
