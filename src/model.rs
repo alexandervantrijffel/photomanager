@@ -1,8 +1,10 @@
 use async_graphql::EmptySubscription;
 use async_graphql::{Context, Object, Schema};
 
-use crate::file_management::{FileManager, PhotoReview, PhotosToReview, ReviewScore};
 use async_graphql::{OutputType, SimpleObject};
+
+use crate::file_management::FileManager;
+use crate::image::{PhotoReview, PhotosToReview, ReviewScore};
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
@@ -84,11 +86,12 @@ impl MutationRoot {
         path: String,
         score: ReviewScore,
     ) -> MutationResponse<String> {
+        let file_manager = ctx.data::<FileManager>().unwrap();
         let review = PhotoReview {
-            relative_path: path.clone(),
+            image: file_manager.new_image(&path),
             score,
         };
-        match ctx.data::<FileManager>().unwrap().review_photo(&review) {
+        match file_manager.review_photo(&review) {
             Ok(_) => MutationResponse {
                 success: true,
                 output: "".to_string(),
@@ -110,11 +113,12 @@ impl MutationRoot {
         path: String,
         score: ReviewScore,
     ) -> MutationResponse<String> {
+        let file_manager = ctx.data::<FileManager>().unwrap();
         let review = PhotoReview {
-            relative_path: path.clone(),
+            image: file_manager.new_image(&path),
             score,
         };
-        match ctx.data::<FileManager>().unwrap().undo(&review) {
+        match file_manager.undo(&review) {
             Ok(_) => MutationResponse {
                 success: true,
                 output: "".to_string(),

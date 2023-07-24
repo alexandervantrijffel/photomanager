@@ -2,59 +2,12 @@ use anyhow::{anyhow, bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
-use async_graphql::{Enum, SimpleObject};
 use globwalk::GlobWalkerBuilder;
+
+use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
 
 pub struct FileManager {
     root_dir: String,
-}
-
-#[derive(SimpleObject)]
-pub struct PhotosToReview {
-    pub base_url: String,
-    pub photos: Vec<ImageToReview>,
-    pub folder_image_count: usize,
-    pub folder_name: String,
-}
-
-#[derive(SimpleObject)]
-pub struct ImageToReview {
-    url: String,
-    album: String,
-}
-
-#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
-pub enum ReviewScore {
-    Best,
-    Nah,
-    Worst,
-}
-
-#[derive(Debug, Clone)]
-pub struct PhotoReview {
-    pub image: Image,
-    pub score: ReviewScore,
-}
-
-#[derive(Debug, Clone)]
-pub struct Image {
-    pub relative_path: String,
-    pub root_dir: String,
-    pub full_path: String,
-}
-
-impl Image {
-    pub fn new(relative_path: &str, root_dir: &str) -> Self {
-        Image {
-            relative_path: relative_path.to_string(),
-            root_dir: root_dir.to_string(),
-            full_path: format!(
-                "{}{}",
-                root_dir,
-                relative_path.strip_prefix("/media").unwrap()
-            ),
-        }
-    }
 }
 
 impl FileManager {
@@ -79,7 +32,7 @@ impl FileManager {
             bail!("Photo not found: {}", review.image.full_path)
         }
 
-        let paths = self.source_and_destination_paths(review)?;
+        let paths = review.image.source_and_destination_paths(review)?;
         fs::create_dir_all(&paths.destination_folder).with_context(|| {
             format!(
                 "Failed to create media target folder '{}'",
@@ -159,7 +112,7 @@ impl FileManager {
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
         println!("undoing review: {:?}", review);
-        let paths = self.source_and_destination_paths(review)?;
+        let paths = review.image.source_and_destination_paths(review)?;
         if !PathBuf::from(&review.image.full_path).exists() {
             bail!("Photo not found: {}", &review.image.full_path)
         }
@@ -179,6 +132,7 @@ impl FileManager {
     }
 }
 
+// get_photos_to_review implementation
 impl FileManager {
     pub fn get_photos_to_review(&self) -> Result<PhotosToReview> {
         let (folder_image_count, folder_path, image_files) = self
@@ -269,35 +223,4 @@ impl FileManager {
             ),
         }
     }
-}
-
-impl FileManager {
-    fn source_and_destination_paths(&self, review: &PhotoReview) -> Result<DiskPaths> {
-        let source_folder = match PathBuf::from(&review.image.full_path).parent() {
-            Some(parent) => parent.to_path_buf(),
-            None => bail!(
-                "Parent folder not found for path: {}",
-                review.image.full_path
-            ),
-        };
-
-        let destination_folder = source_folder.join(match review.score {
-            ReviewScore::Best => "best",
-            ReviewScore::Nah => "nah",
-            ReviewScore::Worst => "worst",
-        });
-
-        let destination_file =
-            destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());
-        Ok(DiskPaths {
-            destination_folder,
-            destination_file,
-        })
-    }
-}
-
-#[derive(Debug)]
-struct DiskPaths {
-    destination_folder: PathBuf,
-    destination_file: PathBuf,
 }

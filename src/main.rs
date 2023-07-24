@@ -1,6 +1,7 @@
 mod file_management;
 mod graphql_server;
 mod http_server;
+mod image;
 mod model;
 
 use dotenv::dotenv;
