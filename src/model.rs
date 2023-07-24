@@ -85,7 +85,7 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let review = PhotoReview {
-            path: path.clone(),
+            relative_path: path.clone(),
             score,
         };
         match ctx.data::<FileManager>().unwrap().review_photo(&review) {
@@ -111,7 +111,7 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let review = PhotoReview {
-            path: path.clone(),
+            relative_path: path.clone(),
             score,
         };
         match ctx.data::<FileManager>().unwrap().undo(&review) {
