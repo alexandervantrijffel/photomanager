@@ -39,12 +39,20 @@ pub struct PhotoReview {
 #[derive(Debug, Clone)]
 pub struct Image {
     pub relative_path: String,
+    pub root_dir: String,
+    pub full_path: String,
 }
 
 impl Image {
-    pub fn new(relative_path: &str) -> Self {
+    pub fn new(relative_path: &str, root_dir: &str) -> Self {
         Image {
             relative_path: relative_path.to_string(),
+            root_dir: root_dir.to_string(),
+            full_path: format!(
+                "{}{}",
+                root_dir,
+                relative_path.strip_prefix("/media").unwrap()
+            ),
         }
     }
 }
@@ -59,14 +67,16 @@ impl FileManager {
             .to_string(),
         }
     }
+    pub fn new_image(&self, relative_path: &str) -> Image {
+        Image::new(relative_path, &self.root_dir)
+    }
 }
 
 impl FileManager {
     pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
         println!("Reviewing photo: {:?}", review);
-        let full_path = self.full_path(&review.image.relative_path);
-        if !PathBuf::from(&full_path).exists() {
-            bail!("Photo not found: {full_path}")
+        if !PathBuf::from(&review.image.full_path).exists() {
+            bail!("Photo not found: {}", review.image.full_path)
         }
 
         let paths = self.source_and_destination_paths(review)?;
@@ -78,9 +88,15 @@ impl FileManager {
         })?;
 
         let destination_file = paths.destination_file.display().to_string();
-        println!("Moving photo from {} to {}", full_path, destination_file);
+        println!(
+            "Moving photo from {} to {}",
+            review.image.full_path, destination_file
+        );
 
-        self.move_file_prevent_overwrite_different_contents(&full_path, &destination_file)
+        self.move_file_prevent_overwrite_different_contents(
+            &review.image.full_path,
+            &destination_file,
+        )
     }
 
     fn move_file_prevent_overwrite_different_contents(
@@ -144,18 +160,18 @@ impl FileManager {
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
         println!("undoing review: {:?}", review);
         let paths = self.source_and_destination_paths(review)?;
-        if !PathBuf::from(&paths.full_path).exists() {
-            bail!("Photo not found: {}", paths.full_path)
+        if !PathBuf::from(&review.image.full_path).exists() {
+            bail!("Photo not found: {}", &review.image.full_path)
         }
         println!(
             "Moving photo from {} to {}",
-            paths.full_path,
+            review.image.full_path,
             paths.destination_file.display()
         );
-        fs::rename(&paths.full_path, &paths.destination_file).with_context(|| {
+        fs::rename(&review.image.full_path, &paths.destination_file).with_context(|| {
             format!(
                 "Failed to move photo from {} to {}",
-                paths.full_path,
+                review.image.full_path,
                 paths.destination_file.display()
             )
         })?;
@@ -256,22 +272,13 @@ impl FileManager {
 }
 
 impl FileManager {
-    fn full_path(&self, relative_path: &str) -> String {
-        format!(
-            "{}{}",
-            self.root_dir,
-            relative_path
-                .strip_prefix("/media")
-                .unwrap_or(relative_path)
-        )
-    }
-
     fn source_and_destination_paths(&self, review: &PhotoReview) -> Result<DiskPaths> {
-        let full_path = self.full_path(&review.image.relative_path);
-
-        let source_folder = match PathBuf::from(&full_path).parent() {
+        let source_folder = match PathBuf::from(&review.image.full_path).parent() {
             Some(parent) => parent.to_path_buf(),
-            None => bail!("Parent folder not found for path: {}", full_path),
+            None => bail!(
+                "Parent folder not found for path: {}",
+                review.image.full_path
+            ),
         };
 
         let destination_folder = source_folder.join(match review.score {
@@ -281,19 +288,16 @@ impl FileManager {
         });
 
         let destination_file =
-            destination_folder.join(PathBuf::from(&full_path).file_name().unwrap());
-        let paths = DiskPaths {
-            full_path,
+            destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());
+        Ok(DiskPaths {
             destination_folder,
             destination_file,
-        };
-        Ok(paths)
+        })
     }
 }
 
 #[derive(Debug)]
 struct DiskPaths {
-    full_path: String,
     destination_folder: PathBuf,
     destination_file: PathBuf,
 }
