@@ -32,13 +32,10 @@ impl FileManager {
             bail!("Photo not found: {}", review.image.full_path)
         }
 
-        let paths = review.image.source_and_destination_paths(review)?;
-        fs::create_dir_all(&paths.destination_folder).with_context(|| {
-            format!(
-                "Failed to create media target folder '{}'",
-                &paths.destination_folder.display()
-            )
-        })?;
+        let paths = review
+            .image
+            .source_and_destination_paths(review)?
+            .ensure_paths()?;
 
         let destination_file = paths.destination_file.display().to_string();
         println!(

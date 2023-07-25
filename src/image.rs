@@ -1,4 +1,5 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
+use std::fs;
 use std::path::PathBuf;
 
 use async_graphql::{Enum, SimpleObject};
@@ -21,6 +22,20 @@ pub struct DiskPaths {
     pub destination_folder: PathBuf,
     pub destination_file: PathBuf,
 }
+
+impl DiskPaths {
+    pub fn ensure_paths(self) -> Result<Self> {
+        // std::fs::create_dir_all(&self.destination_folder).unwrap();
+        fs::create_dir_all(&self.destination_folder).with_context(|| {
+            format!(
+                "Failed to create media target folder '{}'",
+                &self.destination_folder.display()
+            )
+        })?;
+        Ok(self)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
     pub image: Image,
