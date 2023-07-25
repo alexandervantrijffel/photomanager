@@ -1,4 +1,5 @@
 mod file_management;
+mod fsops;
 mod graphql_server;
 mod http_server;
 mod image;

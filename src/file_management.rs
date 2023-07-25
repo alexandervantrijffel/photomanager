@@ -1,9 +1,10 @@
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use globwalk::GlobWalkerBuilder;
 
+use crate::fsops::{can_safely_overwrite, get_unique_filepath};
 use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
 
 pub struct FileManager {
@@ -54,16 +55,12 @@ impl FileManager {
         destination_file: &str,
     ) -> Result<()> {
         let mut final_destination_file = destination_file.to_string();
-        if Path::new(destination_file).exists() {
-            let source_file_contents = fs::read(source_file).unwrap();
-            let destination_file_contents = fs::read(destination_file).unwrap();
-            if source_file_contents != destination_file_contents {
-                final_destination_file = self.get_unique_filepath(destination_file)?; // format!("{}.new", &destination_file);
-                println!(
-                    "Destination file already exists, but contents are different. Moving to {}",
-                    final_destination_file
-                );
-            }
+        if !can_safely_overwrite(source_file, destination_file)? {
+            final_destination_file = get_unique_filepath(destination_file)?;
+            println!(
+                "Destination file already exists, but contents are different. Moving to {}",
+                final_destination_file
+            );
         }
         fs::rename(source_file, &final_destination_file).with_context(|| {
             format!(
@@ -71,39 +68,6 @@ impl FileManager {
                 source_file, final_destination_file
             )
         })
-    }
-
-    fn get_unique_filepath(&self, file_path: &str) -> Result<String> {
-        let path = Path::new(file_path);
-        let dir = path
-            .parent()
-            .ok_or_else(|| anyhow!("Failed to get parent dir"))?;
-        let title = path
-            .file_stem()
-            .and_then(|p| p.to_str())
-            .ok_or_else(|| anyhow!("no file title"))?;
-        let ext = path.extension().and_then(|p| p.to_str()).ok_or_else(|| {
-            anyhow!(
-                "Failed to get file extension for: {}",
-                path.to_str().unwrap()
-            )
-        })?;
-
-        let mut last_path_buf: PathBuf = PathBuf::new();
-
-        let found = (1..=20).find(|i| {
-            last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
-            !Path::new(&last_path_buf).exists()
-        });
-
-        match found {
-            Some(_) => Ok(last_path_buf.to_str().unwrap().to_string()),
-            None => bail!(
-                "Failed to find unique file path for: {}, last path: {}",
-                file_path,
-                last_path_buf.to_str().unwrap()
-            ),
-        }
     }
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
