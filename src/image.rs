@@ -20,7 +20,7 @@ pub enum ReviewScore {
 #[derive(Debug)]
 pub struct DiskPaths {
     pub destination_folder: PathBuf,
-    pub destination_file: PathBuf,
+    pub destination_file: String,
 }
 
 impl DiskPaths {
@@ -85,7 +85,7 @@ impl Image {
             destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());
         Ok(DiskPaths {
             destination_folder,
-            destination_file,
+            destination_file: destination_file.to_str().unwrap().to_string(),
         })
     }
 }

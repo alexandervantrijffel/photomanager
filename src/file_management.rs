@@ -37,15 +37,14 @@ impl FileManager {
             .source_and_destination_paths(review)?
             .ensure_paths()?;
 
-        let destination_file = paths.destination_file.display().to_string();
         println!(
             "Moving photo from {} to {}",
-            review.image.full_path, destination_file
+            review.image.full_path, &paths.destination_file
         );
 
         self.move_file_prevent_overwrite_different_contents(
             &review.image.full_path,
-            &destination_file,
+            &paths.destination_file,
         )
     }
 
@@ -115,14 +114,12 @@ impl FileManager {
         }
         println!(
             "Moving photo from {} to {}",
-            review.image.full_path,
-            paths.destination_file.display()
+            review.image.full_path, paths.destination_file
         );
         fs::rename(&review.image.full_path, &paths.destination_file).with_context(|| {
             format!(
                 "Failed to move photo from {} to {}",
-                review.image.full_path,
-                paths.destination_file.display()
+                review.image.full_path, paths.destination_file
             )
         })?;
         Ok(())
