@@ -5,7 +5,8 @@ use std::{env, fs};
 use globwalk::GlobWalkerBuilder;
 
 use crate::fsops::{can_safely_overwrite, get_unique_filepath, safe_rename};
-use crate::image::{get_review_scores_as_str, Image, ImageToReview, PhotoReview, PhotosToReview};
+use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
+use crate::reviewscore::get_review_scores_as_str;
 
 pub struct FileManager {
     root_dir: String,

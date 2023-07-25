@@ -4,7 +4,8 @@ use async_graphql::{Context, Object, Schema};
 use async_graphql::{OutputType, SimpleObject};
 
 use crate::file_management::FileManager;
-use crate::image::{PhotoReview, PhotosToReview, ReviewScore};
+use crate::image::{PhotoReview, PhotosToReview};
+use crate::reviewscore::ReviewScore;
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
