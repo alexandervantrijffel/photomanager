@@ -17,25 +17,6 @@ pub enum ReviewScore {
     Worst,
 }
 
-#[derive(Debug)]
-pub struct DiskPaths {
-    pub destination_folder: PathBuf,
-    pub destination_file: String,
-}
-
-impl DiskPaths {
-    pub fn ensure_paths(self) -> Result<Self> {
-        // std::fs::create_dir_all(&self.destination_folder).unwrap();
-        fs::create_dir_all(&self.destination_folder).with_context(|| {
-            format!(
-                "Failed to create media target folder '{}'",
-                &self.destination_folder.display()
-            )
-        })?;
-        Ok(self)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
     pub image: Image,
@@ -66,7 +47,7 @@ impl Image {
             ),
         }
     }
-    pub fn source_and_destination_paths(&self, review: &PhotoReview) -> Result<DiskPaths> {
+    pub fn get_destination_path(&self, review: &PhotoReview) -> Result<String> {
         let source_folder = match PathBuf::from(&review.image.full_path).parent() {
             Some(parent) => parent.to_path_buf(),
             None => bail!(
@@ -83,9 +64,6 @@ impl Image {
 
         let destination_file =
             destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());
-        Ok(DiskPaths {
-            destination_folder,
-            destination_file: destination_file.to_str().unwrap().to_string(),
-        })
+        Ok(destination_file.to_str().unwrap().to_string())
     }
 }

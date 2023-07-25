@@ -4,7 +4,7 @@ use std::{env, fs};
 
 use globwalk::GlobWalkerBuilder;
 
-use crate::fsops::{can_safely_overwrite, get_unique_filepath};
+use crate::fsops::{can_safely_overwrite, get_unique_filepath, safe_rename};
 use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
 
 pub struct FileManager {
@@ -33,19 +33,16 @@ impl FileManager {
             bail!("Photo not found: {}", review.image.full_path)
         }
 
-        let paths = review
-            .image
-            .source_and_destination_paths(review)?
-            .ensure_paths()?;
+        let destination_path = review.image.get_destination_path(review)?;
 
         println!(
             "Moving photo from {} to {}",
-            review.image.full_path, &paths.destination_file
+            review.image.full_path, &destination_path
         );
 
         self.move_file_prevent_overwrite_different_contents(
             &review.image.full_path,
-            &paths.destination_file,
+            &destination_path,
         )
     }
 
@@ -62,31 +59,20 @@ impl FileManager {
                 final_destination_file
             );
         }
-        fs::rename(source_file, &final_destination_file).with_context(|| {
-            format!(
-                "Failed to move photo from {} to {}",
-                source_file, final_destination_file
-            )
-        })
+        safe_rename(source_file, &final_destination_file)
     }
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
         println!("undoing review: {:?}", review);
-        let paths = review.image.source_and_destination_paths(review)?;
-        if !PathBuf::from(&review.image.full_path).exists() {
-            bail!("Photo not found: {}", &review.image.full_path)
+        let destination_file = review.image.get_destination_path(review)?;
+        if !PathBuf::from(&destination_file).exists() {
+            bail!("Photo not found: {}", &destination_file)
         }
         println!(
             "Moving photo from {} to {}",
-            review.image.full_path, paths.destination_file
+            destination_file, review.image.full_path
         );
-        fs::rename(&review.image.full_path, &paths.destination_file).with_context(|| {
-            format!(
-                "Failed to move photo from {} to {}",
-                review.image.full_path, paths.destination_file
-            )
-        })?;
-        Ok(())
+        safe_rename(&destination_file, &review.image.full_path)
     }
 }
 

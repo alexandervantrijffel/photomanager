@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 
 pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     if !PathBuf::from(destination).exists() {
@@ -10,6 +10,20 @@ pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     let source_file_contents = fs::read(source)?;
     let destination_file_contents = fs::read(destination)?;
     Ok(destination_file_contents == source_file_contents)
+}
+
+pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
+    let destination_folder = Path::new(destination)
+        .parent()
+        .ok_or_else(|| anyhow!("Failed to get parent dir"))?;
+    fs::create_dir_all(destination_folder).with_context(|| {
+        format!(
+            "Failed to create media target folder '{}'",
+            &destination_folder.display()
+        )
+    })?;
+    fs::rename(source, destination)
+        .with_context(|| format!("Failed to move photo from {} to {}", source, destination))
 }
 
 pub fn get_unique_filepath(file_path: &str) -> Result<String> {
