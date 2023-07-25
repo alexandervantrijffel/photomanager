@@ -1,20 +1,29 @@
-use anyhow::{bail, Context, Result};
-use std::fs;
+use anyhow::{bail, Result};
 use std::path::PathBuf;
 
 use async_graphql::{Enum, SimpleObject};
 
-#[derive(Debug, Clone)]
-pub struct Image {
-    pub relative_path: String,
-    pub root_dir: String,
-    pub full_path: String,
-}
 #[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
 pub enum ReviewScore {
     Best,
     Nah,
     Worst,
+}
+impl ReviewScore {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ReviewScore::Best => "best",
+            ReviewScore::Nah => "nah",
+            ReviewScore::Worst => "worst",
+        }
+    }
+}
+pub fn get_review_scores_as_str() -> Vec<&'static str> {
+    vec![
+        ReviewScore::Best.as_str(),
+        ReviewScore::Nah.as_str(),
+        ReviewScore::Worst.as_str(),
+    ]
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +44,12 @@ pub struct ImageToReview {
     pub album: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct Image {
+    pub relative_path: String,
+    pub root_dir: String,
+    pub full_path: String,
+}
 impl Image {
     pub fn new(relative_path: &str, root_dir: &str) -> Self {
         Image {
@@ -56,11 +71,7 @@ impl Image {
             ),
         };
 
-        let destination_folder = source_folder.join(match review.score {
-            ReviewScore::Best => "best",
-            ReviewScore::Nah => "nah",
-            ReviewScore::Worst => "worst",
-        });
+        let destination_folder = source_folder.join(review.score.as_str());
 
         let destination_file =
             destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());

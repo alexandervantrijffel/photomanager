@@ -5,7 +5,7 @@ use std::{env, fs};
 use globwalk::GlobWalkerBuilder;
 
 use crate::fsops::{can_safely_overwrite, get_unique_filepath, safe_rename};
-use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
+use crate::image::{get_review_scores_as_str, Image, ImageToReview, PhotoReview, PhotosToReview};
 
 pub struct FileManager {
     root_dir: String,
@@ -66,7 +66,7 @@ impl FileManager {
         println!("undoing review: {:?}", review);
         let destination_file = review.image.get_destination_path(review)?;
         if !PathBuf::from(&destination_file).exists() {
-            bail!("Photo not found: {}", &destination_file)
+            bail!("Cannot undo, photo at [{}] not found", &destination_file)
         }
         println!(
             "Moving photo from {} to {}",
@@ -132,17 +132,8 @@ impl FileManager {
         Ok((folder_image_count, folder_with_review_images, image_files))
     }
 
-    fn get_exclude_folder_names(&self) -> Vec<String> {
-        vec![
-            "best".to_string(),
-            "nah".to_string(),
-            "worst".to_string(),
-            ".recycle".to_string(),
-        ]
-    }
     fn find_next_folder_path_with_images_to_review(&self) -> Result<String> {
-        let mut excludes: Vec<String> = self
-            .get_exclude_folder_names()
+        let mut excludes: Vec<String> = get_review_scores_as_str()
             .iter()
             .map(|f| format!("!**/{}/", f))
             .collect();
