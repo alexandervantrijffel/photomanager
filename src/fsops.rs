@@ -12,6 +12,15 @@ pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     Ok(destination_file_contents == source_file_contents)
 }
 
+pub fn have_equal_contents(source: &str, destination: &str) -> Result<bool> {
+    if !PathBuf::from(destination).exists() {
+        return Ok(false);
+    }
+    let source_file_contents = fs::read(source)?;
+    let destination_file_contents = fs::read(destination)?;
+    Ok(destination_file_contents == source_file_contents)
+}
+
 pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
     let destination_folder = Path::new(destination)
         .parent()

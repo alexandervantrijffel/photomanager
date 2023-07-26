@@ -15,10 +15,13 @@ impl ReviewScore {
         }
     }
 }
+pub fn get_review_scores() -> Vec<ReviewScore> {
+    vec![ReviewScore::Best, ReviewScore::Nah, ReviewScore::Worst]
+}
+
 pub fn get_review_scores_as_str() -> Vec<&'static str> {
-    vec![
-        ReviewScore::Best.as_str(),
-        ReviewScore::Nah.as_str(),
-        ReviewScore::Worst.as_str(),
-    ]
+    get_review_scores()
+        .iter()
+        .map(|score| score.as_str())
+        .collect()
 }

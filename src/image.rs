@@ -3,7 +3,8 @@ use std::path::PathBuf;
 
 use async_graphql::SimpleObject;
 
-use crate::reviewscore::ReviewScore;
+use crate::fsops::have_equal_contents;
+use crate::reviewscore::{get_review_scores, get_review_scores_as_str, ReviewScore};
 
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
@@ -59,20 +60,5 @@ impl Image {
                 relative_path.strip_prefix("/media").unwrap()
             ),
         }
-    }
-    pub fn get_destination_path(&self, review: &PhotoReview) -> Result<String> {
-        let source_folder = match PathBuf::from(&review.image.full_path).parent() {
-            Some(parent) => parent.to_path_buf(),
-            None => bail!(
-                "Parent folder not found for path: {}",
-                review.image.full_path
-            ),
-        };
-
-        let destination_folder = source_folder.join(review.score.as_str());
-
-        let destination_file =
-            destination_folder.join(PathBuf::from(&review.image.full_path).file_name().unwrap());
-        Ok(destination_file.to_str().unwrap().to_string())
     }
 }
