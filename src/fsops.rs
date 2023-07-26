@@ -7,19 +7,14 @@ pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     if !PathBuf::from(destination).exists() {
         return Ok(true);
     }
-    let source_file_contents = fs::read(source)?;
-    let destination_file_contents = fs::read(destination)?;
-    Ok(destination_file_contents == source_file_contents)
+    Ok(fs::read(source)? == fs::read(destination)?)
 }
 
 pub fn have_equal_contents(source: &str, destination: &str) -> Result<bool> {
     if !PathBuf::from(destination).exists() {
         return Ok(false);
     }
-    let source_file_contents = fs::read(source)?;
-    let destination_file_contents = fs::read(destination)?;
-    let result = destination_file_contents == source_file_contents;
-    Ok(result)
+    Ok(fs::read(source)? == fs::read(destination)?)
 }
 
 pub fn safe_rename(source: &str, destination: &str) -> Result<()> {

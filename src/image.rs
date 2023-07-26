@@ -77,13 +77,14 @@ impl Image {
                 .to_string(),
         }
     }
+    // Returns <root_dir>/score/album/filename
     pub fn get_destination_path(&self, score: &ReviewScore) -> Result<String> {
-        let destination_folder = PathBuf::from(&self.root_dir)
+        Ok(PathBuf::from(&self.root_dir)
             .join(score.as_str())
-            .join(&self.album_name);
-
-        let destination_file =
-            destination_folder.join(PathBuf::from(&self.full_path).file_name().unwrap());
-        Ok(destination_file.to_str().unwrap().to_string())
+            .join(&self.album_name)
+            .join(PathBuf::from(&self.full_path).file_name().unwrap())
+            .to_str()
+            .unwrap()
+            .to_string())
     }
 }
