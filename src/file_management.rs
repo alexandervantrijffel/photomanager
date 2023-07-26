@@ -34,7 +34,7 @@ impl FileManager {
             bail!("Photo not found: {}", review.image.full_path)
         }
 
-        let destination_path = review.image.get_destination_path(review)?;
+        let destination_path = review.get_destination_path()?;
 
         println!(
             "Moving photo from {} to {}",
@@ -65,7 +65,7 @@ impl FileManager {
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
         println!("undoing review: {:?}", review);
-        let destination_file = review.image.get_destination_path(review)?;
+        let destination_file = review.get_destination_path()?;
         if !PathBuf::from(&destination_file).exists() {
             bail!("Cannot undo, photo at [{}] not found", &destination_file)
         }

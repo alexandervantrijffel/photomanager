@@ -10,6 +10,25 @@ pub struct PhotoReview {
     pub image: Image,
     pub score: ReviewScore,
 }
+
+impl PhotoReview {
+    pub fn get_destination_path(&self) -> Result<String> {
+        let source_folder = match PathBuf::from(&self.image.full_path).parent() {
+            Some(parent) => parent.to_path_buf(),
+            None => bail!(
+                "Parent folder not found for path: {}",
+                &self.image.full_path
+            ),
+        };
+
+        let destination_folder = source_folder.join(self.score.as_str());
+
+        let destination_file =
+            destination_folder.join(PathBuf::from(&self.image.full_path).file_name().unwrap());
+        Ok(destination_file.to_str().unwrap().to_string())
+    }
+}
+
 #[derive(SimpleObject)]
 pub struct PhotosToReview {
     pub base_url: String,
