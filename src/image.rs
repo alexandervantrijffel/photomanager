@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use async_graphql::SimpleObject;
 
@@ -48,6 +48,7 @@ pub struct Image {
     pub relative_path: String,
     pub root_dir: String,
     pub full_path: String,
+    pub album_name: String,
 }
 impl Image {
     pub fn new(relative_path: &str, root_dir: &str) -> Self {
@@ -59,6 +60,34 @@ impl Image {
                 root_dir,
                 relative_path.strip_prefix("/media").unwrap()
             ),
+            album_name: PathBuf::from(relative_path)
+                .parent()
+                .unwrap()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+        }
+    }
+    pub fn from_full_path(full_path: &str, root_dir: &str) -> Self {
+        Image {
+            relative_path: Path::new(full_path)
+                .strip_prefix(Path::new(root_dir))
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+            root_dir: root_dir.to_string(),
+            full_path: full_path.to_string(),
+            album_name: PathBuf::from(full_path)
+                .parent()
+                .unwrap()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
         }
     }
 }

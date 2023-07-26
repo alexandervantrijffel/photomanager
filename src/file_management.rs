@@ -83,33 +83,36 @@ impl FileManager {
         let (folder_image_count, folder_path, image_files) = self
             .find_image_files()
             .with_context(|| "failed to find image files")?;
+
+        let folder_name = image_files
+            .iter()
+            .find(|p| !p.album_name.is_empty())
+            .map(|p| p.album_name.clone())
+            .unwrap_or("???".to_string());
+
         let photos = image_files
             .iter()
             .map(|f| ImageToReview {
-                url: f.replace(&self.root_dir, "/media"),
-                album: {
-                    if let Some(dir) = PathBuf::from(f).parent().unwrap().to_str() {
-                        dir
-                    } else {
-                        "unknown"
-                    }
-                    .to_string()
-                },
+                url: "/media/".to_string() + &f.relative_path,
+                album: PathBuf::from(&f.full_path)
+                    .parent()
+                    .unwrap()
+                    .to_str()
+                    .unwrap_or("unknown")
+                    .to_string(),
             })
             .collect::<Vec<ImageToReview>>();
-
-        let folder_name = Path::new(&folder_path).file_name().unwrap().to_str();
 
         Ok(PhotosToReview {
             base_url: env::var("PUBLIC_URL")
                 .expect("'PUBLIC_URL' environment variable is required"),
             photos,
             folder_image_count,
-            folder_name: folder_name.unwrap().to_string(),
+            folder_name,
         })
     }
 
-    fn find_image_files(&self) -> Result<(usize, String, Vec<String>)> {
+    fn find_image_files(&self) -> Result<(usize, String, Vec<Image>)> {
         let folder_with_review_images = self.find_next_folder_path_with_images_to_review()?;
 
         let mut image_files = fs::read_dir(&folder_with_review_images)?
@@ -128,7 +131,11 @@ impl FileManager {
 
         let folder_image_count = image_files.len();
 
-        image_files.truncate(20);
+        let image_files = image_files
+            .into_iter()
+            .map(|path| Image::from_full_path(&path, &self.root_dir))
+            .take(20)
+            .collect();
 
         Ok((folder_image_count, folder_with_review_images, image_files))
     }
