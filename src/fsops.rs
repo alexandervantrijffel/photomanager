@@ -18,7 +18,8 @@ pub fn have_equal_contents(source: &str, destination: &str) -> Result<bool> {
     }
     let source_file_contents = fs::read(source)?;
     let destination_file_contents = fs::read(destination)?;
-    Ok(destination_file_contents == source_file_contents)
+    let result = destination_file_contents == source_file_contents;
+    Ok(result)
 }
 
 pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
@@ -31,6 +32,7 @@ pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
             &destination_folder.display()
         )
     })?;
+    println!("Moving photo from {} to {}", source, destination);
     fs::rename(source, destination)
         .with_context(|| format!("Failed to move photo from {} to {}", source, destination))
 }

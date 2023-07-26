@@ -1,10 +1,9 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
 
 use async_graphql::SimpleObject;
 
-use crate::fsops::have_equal_contents;
-use crate::reviewscore::{get_review_scores, get_review_scores_as_str, ReviewScore};
+use crate::reviewscore::ReviewScore;
 
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
@@ -14,19 +13,7 @@ pub struct PhotoReview {
 
 impl PhotoReview {
     pub fn get_destination_path(&self) -> Result<String> {
-        let source_folder = match PathBuf::from(&self.image.full_path).parent() {
-            Some(parent) => parent.to_path_buf(),
-            None => bail!(
-                "Parent folder not found for path: {}",
-                &self.image.full_path
-            ),
-        };
-
-        let destination_folder = source_folder.join(self.score.as_str());
-
-        let destination_file =
-            destination_folder.join(PathBuf::from(&self.image.full_path).file_name().unwrap());
-        Ok(destination_file.to_str().unwrap().to_string())
+        self.image.get_destination_path(&self.score)
     }
 }
 
@@ -89,5 +76,14 @@ impl Image {
                 .unwrap()
                 .to_string(),
         }
+    }
+    pub fn get_destination_path(&self, score: &ReviewScore) -> Result<String> {
+        let destination_folder = PathBuf::from(&self.root_dir)
+            .join(score.as_str())
+            .join(&self.album_name);
+
+        let destination_file =
+            destination_folder.join(PathBuf::from(&self.full_path).file_name().unwrap());
+        Ok(destination_file.to_str().unwrap().to_string())
     }
 }

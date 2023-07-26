@@ -5,6 +5,7 @@ pub enum ReviewScore {
     Best,
     Nah,
     Worst,
+    AlreadyReviewed,
 }
 impl ReviewScore {
     pub fn as_str(&self) -> &'static str {
@@ -12,6 +13,7 @@ impl ReviewScore {
             ReviewScore::Best => "best",
             ReviewScore::Nah => "nah",
             ReviewScore::Worst => "worst",
+            ReviewScore::AlreadyReviewed => "already_reviewed",
         }
     }
 }

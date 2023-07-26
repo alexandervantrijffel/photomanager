@@ -1,12 +1,12 @@
 use anyhow::{bail, Context, Result};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::{env, fs};
 
 use globwalk::GlobWalkerBuilder;
 
-use crate::fsops::{can_safely_overwrite, get_unique_filepath, safe_rename};
+use crate::fsops::{can_safely_overwrite, get_unique_filepath, have_equal_contents, safe_rename};
 use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
-use crate::reviewscore::get_review_scores_as_str;
+use crate::reviewscore::{get_review_scores, get_review_scores_as_str, ReviewScore};
 
 pub struct FileManager {
     root_dir: String,
@@ -80,7 +80,7 @@ impl FileManager {
 // get_photos_to_review implementation
 impl FileManager {
     pub fn get_photos_to_review(&self) -> Result<PhotosToReview> {
-        let (folder_image_count, folder_path, image_files) = self
+        let (folder_image_count, image_files) = self
             .find_image_files()
             .with_context(|| "failed to find image files")?;
 
@@ -88,7 +88,7 @@ impl FileManager {
             .iter()
             .find(|p| !p.album_name.is_empty())
             .map(|p| p.album_name.clone())
-            .unwrap_or("???".to_string());
+            .unwrap_or("unknown".to_string());
 
         let photos = image_files
             .iter()
@@ -112,10 +112,10 @@ impl FileManager {
         })
     }
 
-    fn find_image_files(&self) -> Result<(usize, String, Vec<Image>)> {
+    fn find_image_files(&self) -> Result<(usize, Vec<Image>)> {
         let folder_with_review_images = self.find_next_folder_path_with_images_to_review()?;
 
-        let mut image_files = fs::read_dir(&folder_with_review_images)?
+        let mut image_files = fs::read_dir(folder_with_review_images)?
             .filter_map(Result::ok)
             .filter(|entry| {
                 let path = entry.path();
@@ -134,10 +134,34 @@ impl FileManager {
         let image_files = image_files
             .into_iter()
             .map(|path| Image::from_full_path(&path, &self.root_dir))
+            // exclude all images that have already been reviewed
+            .filter(|img| {
+                !get_review_scores().iter().any(|score| {
+                    if have_equal_contents(
+                        &img.full_path,
+                        &img.get_destination_path(score)
+                            .expect("failed to get destination path"),
+                    )
+                    .unwrap_or(false)
+                    {
+                        // move images that are already reviewed to the already_reviewed bucket
+                        safe_rename(
+                            &img.full_path,
+                            &img.get_destination_path(&ReviewScore::AlreadyReviewed)
+                                .expect("failed to get destination path"),
+                        )
+                        // if the image was moved successfully, it shouldn't be reviewed
+                        // anymore
+                        .is_ok()
+                    } else {
+                        false
+                    }
+                })
+            })
             .take(20)
             .collect();
 
-        Ok((folder_image_count, folder_with_review_images, image_files))
+        Ok((folder_image_count, image_files))
     }
 
     fn find_next_folder_path_with_images_to_review(&self) -> Result<String> {
