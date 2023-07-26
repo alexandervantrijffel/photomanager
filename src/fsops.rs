@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     if !PathBuf::from(destination).exists() {
@@ -48,19 +48,17 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
         )
     })?;
 
-    let mut last_path_buf: PathBuf = PathBuf::new();
-
-    let found = (1..=20).find(|i| {
-        last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
-        !Path::new(&last_path_buf).exists()
-    });
-
-    match found {
-        Some(_) => Ok(last_path_buf.to_str().unwrap().to_string()),
-        None => bail!(
-            "Failed to find unique file path for: {}, last path: {}",
-            file_path,
-            last_path_buf.to_str().unwrap()
-        ),
-    }
+    (1..=20)
+        .find_map(|i| {
+            let last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
+            if !Path::new(&last_path_buf).exists() {
+                Some(last_path_buf.to_str().unwrap().to_string())
+            } else {
+                None
+            }
+        })
+        .ok_or(anyhow!(
+            "Failed to find unique file path for: {}",
+            file_path
+        ))
 }
