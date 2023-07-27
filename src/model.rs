@@ -39,13 +39,14 @@ impl QueryRoot {
     ///}
     #[graphql(name = "photosToReview")]
     async fn photos_to_review(&self, _ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
-        let fm = _ctx.data::<FileManager>().unwrap();
-        match fm.get_photos_to_review() {
-            Ok(paths) => MutationResponse {
+        _ctx.data::<FileManager>()
+            .unwrap()
+            .get_photos_to_review()
+            .map(|paths| MutationResponse {
                 success: true,
                 output: paths,
-            },
-            Err(err) => {
+            })
+            .unwrap_or_else(|err| {
                 println!("Failed to retrieve photos_to_review: {:#}", err);
                 MutationResponse {
                     success: false,
@@ -56,8 +57,7 @@ impl QueryRoot {
                         folder_image_count: 0,
                     },
                 }
-            }
-        }
+            })
     }
 }
 

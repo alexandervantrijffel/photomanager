@@ -37,7 +37,7 @@ fn init_env() -> PathBuf {
 }
 
 fn write_image(folder: &Path, album: &str, file_name: &str) {
-    assert!(write_file(&folder.join(album).join(file_name), "123").is_ok());
+    assert!(write_file(&folder.join(album).join(file_name), "image file contents").is_ok());
 }
 
 fn write_file(path: &Path, content: &str) -> Result<()> {

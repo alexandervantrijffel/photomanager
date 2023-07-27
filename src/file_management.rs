@@ -145,17 +145,16 @@ impl FileManager {
                     .unwrap_or(false)
                     {
                         // move images that are already reviewed to the already_reviewed bucket
-                        safe_rename(
+                        return safe_rename(
                             &img.full_path,
                             &img.get_destination_path(&ReviewScore::AlreadyReviewed)
                                 .expect("failed to get destination path"),
                         )
                         // if the image was moved successfully, it shouldn't be reviewed
                         // anymore
-                        .is_ok()
-                    } else {
-                        false
+                        .is_ok();
                     }
+                    false
                 })
             })
             .take(20)
