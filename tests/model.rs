@@ -3,7 +3,7 @@ use async_graphql::value;
 use rand::Rng;
 use std::path::{Path, PathBuf};
 
-// subscription example test
+// graphql subscription example test
 // https://github.com/async-graphql/async-graphql/blob/bdbd1f8a9040edd7c45aee7275b6feba2e696052/tests/raw_ident.rs#L59
 //
 #[tokio::test]
@@ -110,6 +110,50 @@ mutation {
     );
     Ok(())
 }
+
+#[tokio::test]
+async fn test_review_photo() -> Result<()> {
+    let media_dir = init_env()?;
+    let nah_photo_path = write_image(&media_dir, "albumX", "nah-photo.jpg", "i")?;
+    let data = photomanagerlib::model::new_schema(Some(&media_dir))
+        .execute(
+            "
+mutation {
+  reviewPhoto(path: \"/media/albumX/nah-photo.jpg\", score: NAH) {
+    success
+    output   
+  }
+}
+",
+        )
+        .await
+        .into_result()
+        .unwrap()
+        .data;
+
+    assert_eq!(
+        data,
+        value!({
+            "reviewPhoto": {
+                "success": true,
+                "output": ""
+            }
+        })
+    );
+
+    assert!(PathBuf::from(&media_dir)
+        .join(photomanagerlib::reviewscore::ReviewScore::Nah.as_str())
+        .join("albumX")
+        .join("nah-photo.jpg")
+        .exists());
+
+    assert!(
+        !nah_photo_path.exists(),
+        "nah-photo should have been removed because it was reviewed"
+    );
+    Ok(())
+}
+
 fn init_env() -> Result<String> {
     let tempdir = std::env::temp_dir().join("photomanager-tests");
     let mut rng = rand::thread_rng();
