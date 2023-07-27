@@ -25,6 +25,22 @@ jobs:
       github-sha: ${{ steps.set-outputs.outputs.github-sha }}
       app-name: ${{ steps.set-outputs.outputs.app-name }}
     steps:
+      - name: Install rust stable with rustfmt and clippy
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          # args: --release --all-features
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --verbose -- -D warnings
       - name: Export env vars
         id: set-outputs
         run: |

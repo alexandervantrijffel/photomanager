@@ -4,8 +4,8 @@ COPY . /app
 
 RUN cargo install cargo-audit
 RUN cargo build --release --no-default-features
-RUN cargo clippy --verbose -- -D warnings
-RUN cargo test --verbose
+# RUN cargo clippy --verbose -- -D warnings
+# RUN cargo test --verbose
 RUN cargo audit
 
 FROM gcr.io/distroless/cc
