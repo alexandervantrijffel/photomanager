@@ -13,7 +13,7 @@ anyhow = {version="1.0.71", features=["backtrace"]}
 async-graphql = "5.0.7"
 async-graphql-axum = "5.0.7"
 axum = {version="0.6.17",features= ["macros"]}
-dotenv = "0.15.0"
+dotenvy = "0.15.7"
 globwalk = "0.8.1"
 hyper = "0.14.26"
 serde = {version="1.0.160", features=["derive"]}

@@ -6,7 +6,7 @@ mod image;
 pub mod model;
 pub mod reviewscore;
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 
 pub async fn run_server() {
     dotenv().ok();
