@@ -21,6 +21,8 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    # for clippy-check and audit-check
+    permissions: write-all
     outputs:
       github-sha: ${{ steps.set-outputs.outputs.github-sha }}
       app-name: ${{ steps.set-outputs.outputs.app-name }}
@@ -52,10 +54,16 @@ jobs:
         with:
           command: clippy
           args: --verbose -- -D warnings
-      - uses: giraffate/clippy-action@v1
+      # - uses: giraffate/clippy-action@v1
+      #   with:
+      #     reporter: "github-pr-review"
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      # in Workflow Permissions section give actions Read and Write permissions
+      # at https://github.com/OWNER/REPO/settings/actions-rs for this to work
+      - uses: actions-rs/clippy-check@v1
         with:
-          reporter: "github-pr-review"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
       - name: Security audit
         uses: actions-rs/audit-check@v1
         with:
