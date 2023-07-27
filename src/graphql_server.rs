@@ -55,5 +55,5 @@ pub(crate) async fn run_graphql_server(router: Router) -> Router {
     router
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .route("/ws", get(graphql_ws_handler))
-        .layer(Extension(new_schema()))
+        .layer(Extension(new_schema(None)))
 }

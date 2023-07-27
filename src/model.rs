@@ -9,13 +9,13 @@ use crate::reviewscore::ReviewScore;
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
-pub fn new_schema() -> ServiceSchema {
+pub fn new_schema(media_path: Option<&str>) -> ServiceSchema {
     Schema::build(
         QueryRoot::default(),
         MutationRoot::default(),
         EmptySubscription,
     )
-    .data(FileManager::new())
+    .data(FileManager::new(media_path))
     .finish()
 }
 
@@ -94,8 +94,8 @@ impl MutationRoot {
                 score,
             })
             .map(|_| MutationResponse {
-                success: true,
                 output: "".to_string(),
+                success: true,
             })
             .unwrap_or_else(|err| {
                 println!("Failed to review photo '{}': {:#}", path, err);

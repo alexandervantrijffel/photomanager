@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_graphql::value;
+use rand::Rng;
 use std::path::{Path, PathBuf};
 
 // subscription example test
@@ -14,14 +15,13 @@ async fn test_get_photos() -> Result<()> {
         "albumX",
         "best-photo.jpg",
         "i",
-    );
+    )?;
     // should not be listed because it has been reviewed before
-    write_image(&media_dir, "albumX", "best-photo.jpg", "i");
+    let unreviewed_best_photo_path = write_image(&media_dir, "albumX", "best-photo.jpg", "i")?;
 
-    write_image(&media_dir, "albumX", "123.jpg", "i");
+    write_image(&media_dir, "albumX", "123.jpg", "i")?;
 
-    let schema = photomanagerlib::model::new_schema();
-    let data = schema
+    let data = photomanagerlib::model::new_schema(Some(&media_dir))
         .execute(
             "
 {
@@ -62,20 +62,60 @@ async fn test_get_photos() -> Result<()> {
     );
 
     assert!(
-        !PathBuf::from(&media_dir)
-            .join("albumX")
-            .join("best-photo.jpg")
-            .exists(),
+        !unreviewed_best_photo_path.exists(),
         "best-photo should have been removed because it has been reviewed already"
     );
     Ok(())
 }
 
+#[tokio::test]
+async fn test_undo() -> Result<()> {
+    let media_dir = init_env()?;
+    let best_photo_reviewed_path = write_reviewed_image(
+        &media_dir,
+        photomanagerlib::reviewscore::ReviewScore::Best,
+        "albumX",
+        "best-photo.jpg",
+        "i",
+    )?;
+    let data = photomanagerlib::model::new_schema(Some(&media_dir))
+        .execute(
+            "
+mutation {
+  undo(path: \"/media/albumX/best-photo.jpg\", score: BEST) {
+    success
+    output   
+  }
+}
+",
+        )
+        .await
+        .into_result()
+        .unwrap()
+        .data;
+
+    assert_eq!(
+        data,
+        value!({
+            "undo": {
+                "success": true,
+                "output": ""
+            }
+        })
+    );
+
+    assert!(
+        !best_photo_reviewed_path.exists(),
+        "best-photo should have been removed because it was undone"
+    );
+    Ok(())
+}
 fn init_env() -> Result<String> {
     let tempdir = std::env::temp_dir().join("photomanager-tests");
-    let path = photomanagerlib::fsops::get_unique_filepath(tempdir.to_str().unwrap())?;
+    let mut rng = rand::thread_rng();
+    let path = photomanagerlib::fsops::get_unique_filepath(tempdir.to_str().unwrap())
+        .map(|p| p + "--" + rng.gen_range(1..10000).to_string().as_str())?;
 
-    std::env::set_var("MEDIA_ROOT", &path);
     std::env::set_var("PUBLIC_URL", "http://integration-test");
     Ok(path)
 }
@@ -86,19 +126,19 @@ fn write_reviewed_image(
     album: &str,
     file_name: &str,
     contents: &str,
-) {
-    assert!(write_file(
-        &PathBuf::from(folder)
-            .join(score.as_str())
-            .join(album)
-            .join(file_name),
-        contents
-    )
-    .is_ok());
+) -> Result<PathBuf> {
+    let path = PathBuf::from(folder)
+        .join(score.as_str())
+        .join(album)
+        .join(file_name);
+    write_file(&path, contents)?;
+    Ok(path)
 }
 
-fn write_image(folder: &str, album: &str, file_name: &str, contents: &str) {
-    assert!(write_file(&PathBuf::from(folder).join(album).join(file_name), contents).is_ok());
+fn write_image(folder: &str, album: &str, file_name: &str, contents: &str) -> Result<PathBuf> {
+    let path = PathBuf::from(folder).join(album).join(file_name);
+    write_file(&path, contents)?;
+    Ok(path)
 }
 
 fn write_file(path: &Path, content: &str) -> Result<()> {

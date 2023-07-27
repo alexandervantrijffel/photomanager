@@ -13,13 +13,16 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new() -> Self {
+    pub fn new(media_path: Option<&str>) -> Self {
+        dbg!(media_path);
         FileManager {
-            root_dir: shellexpand::env(
-                &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
-            )
-            .unwrap()
-            .to_string(),
+            root_dir: media_path.map(|p| p.to_string()).unwrap_or_else(|| {
+                shellexpand::env(
+                    &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
+                )
+                .unwrap()
+                .to_string()
+            }),
         }
     }
     pub fn new_image(&self, relative_path: &str) -> Image {
@@ -88,7 +91,7 @@ impl FileManager {
             .iter()
             .find(|p| !p.album_name.is_empty())
             .map(|p| p.album_name.clone())
-            .unwrap_or("unknown".to_string());
+            .unwrap_or_else(|| "unknown".to_string());
 
         let photos = image_files
             .iter()

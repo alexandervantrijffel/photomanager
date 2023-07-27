@@ -1004,6 +1004,7 @@ dependencies = [
  "dotenv",
  "globwalk",
  "hyper",
+ "rand",
  "serde",
  "serde_json",
  "shellexpand",
