@@ -48,7 +48,7 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
         .map(|s| ".".to_owned() + s)
         .unwrap_or_else(|| "".to_owned());
 
-    (1..=20)
+    (1..=1000)
         .find_map(|i| {
             let last_path_buf = dir.join(format!("{}-{}{}", title, i, ext));
             if !Path::new(&last_path_buf).exists() {

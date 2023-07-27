@@ -4,7 +4,7 @@ mod graphql_server;
 mod http_server;
 mod image;
 pub mod model;
-mod reviewscore;
+pub mod reviewscore;
 
 use dotenv::dotenv;
 

@@ -2,12 +2,26 @@ use anyhow::Result;
 use async_graphql::value;
 use std::path::{Path, PathBuf};
 
+// subscription example test
+// https://github.com/async-graphql/async-graphql/blob/bdbd1f8a9040edd7c45aee7275b6feba2e696052/tests/raw_ident.rs#L59
+//
 #[tokio::test]
 async fn test_get_photos() -> Result<()> {
     let media_dir = init_env()?;
-    write_image(&media_dir, "albumX", "123.jpg");
+    write_reviewed_image(
+        &media_dir,
+        photomanagerlib::reviewscore::ReviewScore::Best,
+        "albumX",
+        "best-photo.jpg",
+        "i",
+    );
+    // should not be listed because it has been reviewed before
+    write_image(&media_dir, "albumX", "best-photo.jpg", "i");
+
+    write_image(&media_dir, "albumX", "123.jpg", "i");
+
     let schema = photomanagerlib::model::new_schema();
-    let response = schema
+    let data = schema
         .execute(
             "
 {
@@ -24,12 +38,13 @@ async fn test_get_photos() -> Result<()> {
 }
 ",
         )
-        .await;
+        .await
+        .into_result()
+        .unwrap()
+        .data;
 
-    let json = serde_json::to_string(&response.data)?;
-    assert!(json.contains("/media/albumX/123.jpg"), "{}", json);
     assert_eq!(
-        response.data,
+        data,
         value!({
             "photosToReview": {
                 "success": true,
@@ -45,6 +60,14 @@ async fn test_get_photos() -> Result<()> {
             }
         })
     );
+
+    assert!(
+        !PathBuf::from(&media_dir)
+            .join("albumX")
+            .join("best-photo.jpg")
+            .exists(),
+        "best-photo should have been removed because it has been reviewed already"
+    );
     Ok(())
 }
 
@@ -57,12 +80,25 @@ fn init_env() -> Result<String> {
     Ok(path)
 }
 
-fn write_image(folder: &str, album: &str, file_name: &str) {
+fn write_reviewed_image(
+    folder: &str,
+    score: photomanagerlib::reviewscore::ReviewScore,
+    album: &str,
+    file_name: &str,
+    contents: &str,
+) {
     assert!(write_file(
-        &PathBuf::from(folder).join(album).join(file_name),
-        "image file contents"
+        &PathBuf::from(folder)
+            .join(score.as_str())
+            .join(album)
+            .join(file_name),
+        contents
     )
     .is_ok());
+}
+
+fn write_image(folder: &str, album: &str, file_name: &str, contents: &str) {
+    assert!(write_file(&PathBuf::from(folder).join(album).join(file_name), contents).is_ok());
 }
 
 fn write_file(path: &Path, content: &str) -> Result<()> {
