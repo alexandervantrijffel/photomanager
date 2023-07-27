@@ -88,23 +88,22 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
-        let review = PhotoReview {
-            image: file_manager.new_image(&path),
-            score,
-        };
-        match file_manager.review_photo(&review) {
-            Ok(_) => MutationResponse {
+        file_manager
+            .review_photo(&PhotoReview {
+                image: file_manager.new_image(&path),
+                score,
+            })
+            .map(|_| MutationResponse {
                 success: true,
                 output: "".to_string(),
-            },
-            Err(err) => {
+            })
+            .unwrap_or_else(|err| {
                 println!("Failed to review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
                 }
-            }
-        }
+            })
     }
 
     #[graphql(name = "undo")]
@@ -115,22 +114,21 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
-        let review = PhotoReview {
-            image: file_manager.new_image(&path),
-            score,
-        };
-        match file_manager.undo(&review) {
-            Ok(_) => MutationResponse {
+        file_manager
+            .undo(&PhotoReview {
+                image: file_manager.new_image(&path),
+                score,
+            })
+            .map(|_| MutationResponse {
                 success: true,
                 output: "".to_string(),
-            },
-            Err(err) => {
+            })
+            .unwrap_or_else(|err| {
                 println!("Failed to undo review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
                 }
-            }
-        }
+            })
     }
 }
