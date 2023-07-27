@@ -41,6 +41,21 @@ jobs:
         with:
           command: clippy
           args: --verbose -- -D warnings
+      - name: Annotate commit with clippy warnings
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GH_PAT_TOKEN }}
+          args: --all-features
+      - name: Install cargo-audit binary crate
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-audit
+          version: latest
+          use-tool-cache: true
+      - name: Security audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Export env vars
         id: set-outputs
         run: |
