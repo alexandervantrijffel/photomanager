@@ -41,16 +41,16 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
         .file_stem()
         .and_then(|p| p.to_str())
         .ok_or_else(|| anyhow!("no file title"))?;
-    let ext = path.extension().and_then(|p| p.to_str()).ok_or_else(|| {
-        anyhow!(
-            "Failed to get file extension for: {}",
-            path.to_str().unwrap()
-        )
-    })?;
+
+    let ext = path
+        .extension()
+        .and_then(|p| p.to_str())
+        .map(|s| ".".to_owned() + s)
+        .unwrap_or_else(|| "".to_owned());
 
     (1..=20)
         .find_map(|i| {
-            let last_path_buf = dir.join(format!("{}-{}.{}", title, i, ext));
+            let last_path_buf = dir.join(format!("{}-{}{}", title, i, ext));
             if !Path::new(&last_path_buf).exists() {
                 Some(last_path_buf.to_str().unwrap().to_string())
             } else {

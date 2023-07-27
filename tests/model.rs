@@ -1,10 +1,11 @@
 use anyhow::Result;
+use async_graphql::value;
 use std::path::{Path, PathBuf};
 
 #[tokio::test]
-async fn test_get_photos() {
-    let tempdir = init_env();
-    write_image(&tempdir, "albumX", "123.jpg");
+async fn test_get_photos() -> Result<()> {
+    let media_dir = init_env()?;
+    write_image(&media_dir, "albumX", "123.jpg");
     let schema = photomanagerlib::model::new_schema();
     let response = schema
         .execute(
@@ -25,19 +26,43 @@ async fn test_get_photos() {
         )
         .await;
 
-    let json = serde_json::to_string(&response.data).unwrap();
+    let json = serde_json::to_string(&response.data)?;
     assert!(json.contains("/media/albumX/123.jpg"), "{}", json);
+    assert_eq!(
+        response.data,
+        value!({
+            "photosToReview": {
+                "success": true,
+                "output": {
+                    "baseUrl": "http://integration-test",
+                    "photos": [
+                        {
+                            "album": format!("{}/albumX", media_dir),
+                            "url": "/media/albumX/123.jpg"
+                        }
+                    ]
+                }
+            }
+        })
+    );
+    Ok(())
 }
 
-fn init_env() -> PathBuf {
-    let tempdir = std::env::temp_dir();
-    std::env::set_var("MEDIA_ROOT", tempdir.to_str().unwrap());
+fn init_env() -> Result<String> {
+    let tempdir = std::env::temp_dir().join("photomanager-tests");
+    let path = photomanagerlib::fsops::get_unique_filepath(tempdir.to_str().unwrap())?;
+
+    std::env::set_var("MEDIA_ROOT", &path);
     std::env::set_var("PUBLIC_URL", "http://integration-test");
-    tempdir
+    Ok(path)
 }
 
-fn write_image(folder: &Path, album: &str, file_name: &str) {
-    assert!(write_file(&folder.join(album).join(file_name), "image file contents").is_ok());
+fn write_image(folder: &str, album: &str, file_name: &str) {
+    assert!(write_file(
+        &PathBuf::from(folder).join(album).join(file_name),
+        "image file contents"
+    )
+    .is_ok());
 }
 
 fn write_file(path: &Path, content: &str) -> Result<()> {
