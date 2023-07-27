@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -164,29 +164,25 @@ impl FileManager {
     }
 
     fn find_next_folder_path_with_images_to_review(&self) -> Result<String> {
-        let mut excludes: Vec<String> = get_review_scores_as_str()
-            .iter()
-            .map(|f| format!("!**/{}/", f))
-            .collect();
+        let mut excludes: Vec<String> = vec![format!("**/{}", "*.{png,jpg,jpeg,gif}")];
+        excludes.extend(
+            get_review_scores_as_str()
+                .iter()
+                .map(|f| format!("!**/{}/", f))
+                .collect::<Vec<String>>(),
+        );
 
-        excludes.insert(0, format!("**/{}", "*.{png,jpg,jpeg,gif}"));
-
-        let folders_with_review_images =
-            GlobWalkerBuilder::from_patterns(self.root_dir.as_str(), &excludes)
-                .build()?
-                .filter_map(Result::ok)
-                .find_map(|img| {
-                    img.path()
-                        .parent()
-                        .and_then(|p| p.to_str().map(|s| s.to_string()))
-                });
-
-        match folders_with_review_images {
-            Some(folder) => Ok(folder),
-            None => bail!(
+        GlobWalkerBuilder::from_patterns(self.root_dir.as_str(), &excludes)
+            .build()?
+            .filter_map(Result::ok)
+            .find_map(|img| {
+                img.path()
+                    .parent()
+                    .and_then(|p| p.to_str().map(|s| s.to_string()))
+            })
+            .ok_or(anyhow!(
                 "No folders with images to review found under root folder {}",
                 self.root_dir
-            ),
-        }
+            ))
     }
 }
