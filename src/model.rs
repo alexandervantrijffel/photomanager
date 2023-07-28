@@ -1,3 +1,5 @@
+use std::env;
+
 use async_graphql::EmptySubscription;
 use async_graphql::{Context, Object, Schema};
 
@@ -15,7 +17,15 @@ pub fn new_schema(media_path: Option<&str>) -> ServiceSchema {
         MutationRoot::default(),
         EmptySubscription,
     )
-    .data(FileManager::new(media_path))
+    .data(FileManager::new(
+        &media_path.map(|p| p.to_string()).unwrap_or_else(|| {
+            shellexpand::env(
+                &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
+            )
+            .unwrap()
+            .to_string()
+        }),
+    ))
     .finish()
 }
 

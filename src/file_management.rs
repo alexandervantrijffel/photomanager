@@ -13,18 +13,12 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new(media_path: Option<&str>) -> Self {
-        dbg!(media_path);
+    pub fn new(media_path: &str) -> Self {
         FileManager {
-            root_dir: media_path.map(|p| p.to_string()).unwrap_or_else(|| {
-                shellexpand::env(
-                    &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
-                )
-                .unwrap()
-                .to_string()
-            }),
+            root_dir: media_path.to_string(),
         }
     }
+
     pub fn new_image(&self, relative_path: &str) -> Image {
         Image::new(relative_path, &self.root_dir)
     }
