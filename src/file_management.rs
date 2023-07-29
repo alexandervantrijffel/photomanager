@@ -35,11 +35,6 @@ impl FileManager {
 
         let destination_path = review.get_destination_path()?;
 
-        println!(
-            "Moving photo from {} to {}",
-            review.image.full_path, &destination_path
-        );
-
         self.move_file_prevent_overwrite_different_contents(
             &review.image.full_path,
             &destination_path,
@@ -72,10 +67,6 @@ impl FileManager {
         if !PathBuf::from(&destination_file).exists() {
             bail!("Cannot undo, photo at [{}] not found", &destination_file)
         }
-        println!(
-            "Moving photo from {} to {}",
-            destination_file, review.image.full_path
-        );
         safe_rename(&destination_file, &review.image.full_path)
     }
 }
