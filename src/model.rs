@@ -82,6 +82,15 @@ pub struct MutationResponse<T: OutputType> {
     output: T,
 }
 
+impl MutationResponse<String> {
+    pub fn succeeded<T>(_: T) -> Self {
+        Self {
+            success: true,
+            output: "".to_string(),
+        }
+    }
+}
+
 #[Object]
 impl MutationRoot {
     ///     mutation {
@@ -104,10 +113,7 @@ impl MutationRoot {
                 score,
             })
             .map(upload_best_photos)
-            .map(|_| MutationResponse {
-                output: "".to_string(),
-                success: true,
-            })
+            .map(MutationResponse::succeeded)
             .unwrap_or_else(|err| {
                 println!("Failed to review photo '{}': {:#}", path, err);
                 MutationResponse {
@@ -130,10 +136,7 @@ impl MutationRoot {
                 image: file_manager.new_image(&path),
                 score,
             })
-            .map(|_| MutationResponse {
-                success: true,
-                output: "".to_string(),
-            })
+            .map(MutationResponse::succeeded)
             .unwrap_or_else(|err| {
                 println!("Failed to undo review photo '{}': {:#}", path, err);
                 MutationResponse {

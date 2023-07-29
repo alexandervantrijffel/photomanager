@@ -45,7 +45,7 @@ impl FileManager {
             &destination_path,
         )
         .map(|_| ReviewedPhoto {
-            image: Image::new(&destination_path, &self.root_dir),
+            image: Image::from_full_path(&destination_path, &self.root_dir),
             score: review.score,
         })
     }
