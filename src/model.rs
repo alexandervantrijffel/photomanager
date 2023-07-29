@@ -1,11 +1,11 @@
 use std::env;
 
-use async_graphql::EmptySubscription;
-use async_graphql::{Context, Object, Schema};
+use async_graphql::{Context, EmptySubscription, Object, Schema};
 
 use async_graphql::{OutputType, SimpleObject};
 
 use crate::file_management::FileManager;
+use crate::google_photos_upload::upload_best_photos;
 use crate::image::{PhotoReview, PhotosToReview};
 use crate::reviewscore::ReviewScore;
 
@@ -103,6 +103,7 @@ impl MutationRoot {
                 image: file_manager.new_image(&path),
                 score,
             })
+            .map(upload_best_photos)
             .map(|_| MutationResponse {
                 output: "".to_string(),
                 success: true,

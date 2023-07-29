@@ -1,5 +1,6 @@
 mod file_management;
 pub mod fsops;
+mod google_photos_upload;
 mod graphql_server;
 mod http_server;
 mod image;

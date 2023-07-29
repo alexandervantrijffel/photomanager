@@ -5,7 +5,9 @@ use std::{env, fs};
 use globwalk::GlobWalkerBuilder;
 
 use crate::fsops::{can_safely_overwrite, get_unique_filepath, have_equal_contents, safe_rename};
-use crate::image::{Image, ImageToReview, PhotoReview, PhotosToReview};
+use crate::image::{
+    Image, ImageToReview, PhotoReview, PhotoReview as ReviewedPhoto, PhotosToReview,
+};
 use crate::reviewscore::{get_review_scores, get_review_scores_as_str, ReviewScore};
 
 pub struct FileManager {
@@ -25,7 +27,7 @@ impl FileManager {
 }
 
 impl FileManager {
-    pub fn review_photo(&self, review: &PhotoReview) -> Result<()> {
+    pub fn review_photo(&self, review: &PhotoReview) -> Result<ReviewedPhoto> {
         println!("Reviewing photo: {:?}", review);
         if !PathBuf::from(&review.image.full_path).exists() {
             bail!("Photo not found: {}", review.image.full_path)
@@ -42,6 +44,10 @@ impl FileManager {
             &review.image.full_path,
             &destination_path,
         )
+        .map(|_| ReviewedPhoto {
+            image: Image::new(&destination_path, &self.root_dir),
+            score: review.score,
+        })
     }
 
     fn move_file_prevent_overwrite_different_contents(
