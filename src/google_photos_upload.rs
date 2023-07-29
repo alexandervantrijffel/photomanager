@@ -68,9 +68,10 @@ fn upload_thread(receiver: mpsc::Receiver<ReviewedPhoto>, oauth_secrets: OauthSe
             continue;
         }
 
-        match create_album(&token_val, &req.image.album_name) {
-            Ok(_) => println!("Created album {}", req.image.album_name),
-            Err(e) => println!("Failed to create album {}: {:?}", req.image.album_name, e),
+        let album_name = format!("001-best-{}", req.image.album_name);
+        match create_album(&token_val, &album_name) {
+            Ok(_) => println!("Created album {}", &album_name),
+            Err(e) => println!("Failed to create album {}: {:?}", &album_name, e),
         }
     }
 }
