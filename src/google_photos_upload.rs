@@ -9,7 +9,6 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RefreshToken, TokenRe
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reviewscore::ReviewScore;
 
-use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::json;
 
@@ -41,7 +40,7 @@ thread_local! {
 
         if ctx.enabled {
             thread::spawn( || async move  {
-                println!("Starting upload thread");
+                println!("Starting Google Photos upload thread");
                 let client = GooglePhotosClient::new(&oauth_secrets);
 
                 for req in receiver {
@@ -76,7 +75,7 @@ impl GooglePhotosClient {
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
-        match create_album(self.access_token.as_ref().unwrap(), &album_name) {
+        match create_album(self.access_token.as_ref().unwrap(), &album_name).await {
             Ok(_) => println!("Created google photos album {}", &album_name),
             Err(e) => println!(
                 "Failed to create google photos album {}: {:?}",
@@ -142,7 +141,7 @@ impl OauthSecrets {
     }
 }
 
-fn create_album(access_token: &str, album_name: &str) -> Result<()> {
+async fn create_album(access_token: &str, album_name: &str) -> Result<()> {
     let url = "https://photoslibrary.googleapis.com/v1/albums";
 
     let mut headers = HeaderMap::new();
@@ -157,9 +156,9 @@ fn create_album(access_token: &str, album_name: &str) -> Result<()> {
         }
     });
 
-    let client = Client::new();
-    let res = client.post(url).headers(headers).json(&body).send()?;
-    println!("Response: {:?}", res.text()?);
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    println!("Response: {:?}", res.text().await?);
 
     Ok(())
 }
