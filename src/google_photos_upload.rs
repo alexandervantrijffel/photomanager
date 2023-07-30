@@ -1,6 +1,6 @@
 use anyhow::Result;
+use std::env;
 use std::sync::mpsc;
-use std::{env, thread};
 
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::http_client;
@@ -23,6 +23,7 @@ pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<R
     }
     UPLOAD_REQUESTER.with(|ctx| {
         if !ctx.enabled {
+            println!("Google photos upload is disabled because env vars are not set");
             Ok(())
         } else {
             ctx.sender.send(review)
@@ -31,27 +32,33 @@ pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<R
 }
 
 thread_local! {
-    static UPLOAD_REQUESTER: UploadRequestContext = {
-        let (sender, receiver) = mpsc::channel::<ReviewedPhoto>();
+    static UPLOAD_REQUESTER: UploadRequestContext = init_upload_requester();
+}
 
-        let oauth_secrets = OauthSecrets::from_env();
+fn init_upload_requester() -> UploadRequestContext {
+    let (sender, receiver) = mpsc::channel::<ReviewedPhoto>();
 
-        let ctx = UploadRequestContext{enabled: oauth_secrets.is_valid, sender};
+    let oauth_secrets = OauthSecrets::from_env();
 
-        if ctx.enabled {
-            thread::spawn( || async move  {
-                println!("Starting Google Photos upload thread");
-                let client = GooglePhotosClient::new(&oauth_secrets);
-
-                for req in receiver {
-                    client.upload_photo(req).await;
-                }
-            });
-        } else {
-            println!("Google photos upload is disabled because env vars are not set");
-        }
-        ctx
+    let ctx = UploadRequestContext {
+        enabled: oauth_secrets.is_valid,
+        sender,
     };
+
+    if ctx.enabled {
+        tokio::spawn(async move {
+            println!("Starting Google Photos upload thread");
+
+            let client = GooglePhotosClient::new(&oauth_secrets);
+            for req in receiver {
+                println!("on recv");
+                client.upload_photo(req).await;
+            }
+        });
+    } else {
+        println!("Google photos upload is disabled because env vars are not set");
+    }
+    ctx
 }
 
 struct GooglePhotosClient {
@@ -84,33 +91,38 @@ impl GooglePhotosClient {
         }
     }
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
-        println!("Getting Google Photos client access token");
-        // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and
-        // token URL.
-        let client = BasicClient::new(
-            ClientId::new(oauth_secrets.client_id.clone()),
-            Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
-            AuthUrl::new("https://accounts.google.com/o/oauth2/auth".to_string())?,
-            Some(TokenUrl::new(
-                "https://oauth2.googleapis.com/token".to_string(),
-            )?),
-        )
-        // Set the URL the user will be redirected to after the authorization process.
-        .set_redirect_uri(RedirectUrl::new(
-            "http://localhost:3000/auth/google/callback".to_string(),
-        )?);
+        // this is needed to prevent the panic of a blocking reqwest call:
+        // Cannot drop a runtime in a context where blocking is not allowed" panic in the blocking Client
+        // see https://github.com/seanmonstar/reqwest/issues/1017
+        tokio::task::block_in_place(|| {
+            println!("Getting Google Photos client access token");
+            // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and
+            // token URL.
+            let client = BasicClient::new(
+                ClientId::new(oauth_secrets.client_id.clone()),
+                Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
+                AuthUrl::new("https://accounts.google.com/o/oauth2/auth".to_string())?,
+                Some(TokenUrl::new(
+                    "https://oauth2.googleapis.com/token".to_string(),
+                )?),
+            )
+            // Set the URL the user will be redirected to after the authorization process.
+            .set_redirect_uri(RedirectUrl::new(
+                "http://localhost:3000/auth/google/callback".to_string(),
+            )?);
 
-        // Unwrapping token_result will either produce a Token or a RequestTokenError.
-        let token_result = client
-            .exchange_refresh_token(&RefreshToken::new(oauth_secrets.refresh_token.clone()))
-            .request(http_client)?;
+            // Unwrapping token_result will either produce a Token or a RequestTokenError.
+            let token_result = client
+                .exchange_refresh_token(&RefreshToken::new(oauth_secrets.refresh_token.clone()))
+                .request(http_client)?;
 
-        println!(
-            "Google Photos client access token: {}",
-            token_result.access_token().secret()
-        );
+            println!(
+                "Google Photos client access token: {}",
+                token_result.access_token().secret()
+            );
 
-        Ok(token_result.access_token().secret().clone())
+            Ok(token_result.access_token().secret().clone())
+        })
     }
 }
 
