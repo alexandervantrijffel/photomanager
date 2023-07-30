@@ -47,10 +47,15 @@ thread_local! {
 
         let ctx = UploadRequestContext{enabled: oauth_secrets.is_valid, sender};
 
+        if ctx.enabled {
+
         thread::spawn(move || {
                 println!("Upload thread1");
                 upload_thread(receiver, oauth_secrets)
             });
+        } else {
+            println!("Google photos upload is disabled because env vars are not set");
+        }
         ctx
     };
 }
