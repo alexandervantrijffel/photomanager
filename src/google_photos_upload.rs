@@ -9,7 +9,7 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RefreshToken, TokenRe
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reviewscore::ReviewScore;
 
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::json;
 
 struct UploadRequestContext {
@@ -89,6 +89,34 @@ impl GooglePhotosClient {
                 &album_name, e
             ),
         }
+    }
+    async fn upload_image_bytes(&self) -> Result<()> {
+        // Path to your image
+        let image_path = todo "path/to/your/image.jpg";
+
+        // Read the file into a bytes array
+        let img_bytes = fs::read(image_path)?;
+
+        // Create headers
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, format!("Bearer {}", self.access_token.as_ref.parse().unwrap());
+        headers.insert(CONTENT_TYPE, "application/octet-stream".parse().unwrap());
+        headers.insert("X-Goog-Upload-Protocol", "raw".parse().unwrap()); //
+        headers.insert("X-Goog-Upload-Content-Type", todo.parse().unwrap()); //
+        todo add MIME type header https://developers.google.com/photos/library/reference/rest/v1/mediaItems/batchCreate
+                                        // accepted file types BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, some RAW files.
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post("https://photos.googleapis.com/upload/rest/of/your/endpoint")
+            .headers(headers)
+            .body(img_bytes)
+            .send()
+            .await?;
+
+        println!("Upload completed with status: {}", response.status());
+
+        Ok(())
     }
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
         // this is needed to prevent the panic of a blocking reqwest call:
