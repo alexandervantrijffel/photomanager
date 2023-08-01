@@ -1,6 +1,7 @@
 use anyhow::Result;
-use std::env;
+use std::path::PathBuf;
 use std::sync::mpsc;
+use std::{env, fs};
 
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::http_client;
@@ -90,21 +91,48 @@ impl GooglePhotosClient {
             ),
         }
     }
-    async fn upload_image_bytes(&self) -> Result<()> {
-        // Path to your image
-        let image_path = todo "path/to/your/image.jpg";
-
-        // Read the file into a bytes array
+    async fn upload_image_bytes(&self, image_path: &str) -> Result<()> {
         let img_bytes = fs::read(image_path)?;
 
-        // Create headers
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, format!("Bearer {}", self.access_token.as_ref.parse().unwrap());
+
+        match &self.access_token {
+            Ok(token) => {
+                headers.insert(AUTHORIZATION, format!("Bearer {}", &token).parse().unwrap())
+            }
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "cannot upload image to google because no access token is available"
+                        .to_string()
+                ))
+            }
+        };
         headers.insert(CONTENT_TYPE, "application/octet-stream".parse().unwrap());
         headers.insert("X-Goog-Upload-Protocol", "raw".parse().unwrap()); //
-        headers.insert("X-Goog-Upload-Content-Type", todo.parse().unwrap()); //
-        todo add MIME type header https://developers.google.com/photos/library/reference/rest/v1/mediaItems/batchCreate
-                                        // accepted file types BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, some RAW files.
+                                                                          //
+
+        let mime_type = match PathBuf::from(image_path)
+            .extension()
+            .unwrap()
+            .to_str()
+            .expect("Failed to get file extension of image_path")
+        {
+            "jpg" => Ok("image/jpeg"),
+            "jpeg" => Ok("image/jpeg"),
+            "png" => Ok("image/png"),
+            "gif" => Ok("image/gif"),
+            "heic" => Ok("image/heic"),
+            "tiff" => Ok("image/tiff"),
+            "webp" => Ok("image/webp"),
+            other_ext => Err(format!(
+                "Mime type of exstension [{}] is not supported",
+                other_ext
+            )),
+        }
+        .expect("Failed to get mime type of extension");
+
+        headers.insert("X-Goog-Upload-Content-Type", mime_type.parse().unwrap()); //
+                                                                                  // accepted file types BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, some RAW files.
 
         let client = reqwest::Client::new();
         let response = client
