@@ -91,6 +91,7 @@ impl GooglePhotosClient {
             ),
         }
     }
+    #[allow(dead_code)]
     async fn upload_image_bytes(&self, image_path: &str) -> Result<()> {
         let img_bytes = fs::read(image_path)?;
 
