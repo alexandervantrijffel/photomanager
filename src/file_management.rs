@@ -4,7 +4,10 @@ use std::{env, fs};
 
 use globwalk::GlobWalkerBuilder;
 
-use crate::fsops::{can_safely_overwrite, get_unique_filepath, have_equal_contents, safe_rename};
+use crate::fsops::{
+    can_safely_overwrite, chmod, get_unique_filepath, have_equal_contents,
+    rename_with_create_dir_all,
+};
 use crate::image::{
     Image, ImageToReview, PhotoReview, PhotoReview as ReviewedPhoto, PhotosToReview,
 };
@@ -58,7 +61,8 @@ impl FileManager {
                 final_destination_file
             );
         }
-        safe_rename(source_file, &final_destination_file)
+        rename_with_create_dir_all(source_file, &final_destination_file, 0o775)?;
+        chmod(&final_destination_file, 0o775)
     }
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
@@ -67,7 +71,7 @@ impl FileManager {
         if !PathBuf::from(&destination_file).exists() {
             bail!("Cannot undo, photo at [{}] not found", &destination_file)
         }
-        safe_rename(&destination_file, &review.image.full_path)
+        rename_with_create_dir_all(&destination_file, &review.image.full_path, 0o775)
     }
 }
 
@@ -139,10 +143,11 @@ impl FileManager {
                     .unwrap_or(false)
                     {
                         // move images that are already reviewed to the already_reviewed bucket
-                        return safe_rename(
+                        return rename_with_create_dir_all(
                             &img.full_path,
                             &img.get_destination_path(&ReviewScore::AlreadyReviewed)
                                 .expect("failed to get destination path"),
+                            0o775,
                         )
                         // if the image was moved successfully, it shouldn't be reviewed
                         // anymore

@@ -1,4 +1,5 @@
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
@@ -17,7 +18,7 @@ pub fn have_equal_contents(source: &str, destination: &str) -> Result<bool> {
     Ok(fs::read(source)? == fs::read(destination)?)
 }
 
-pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
+pub fn rename_with_create_dir_all(source: &str, destination: &str, mode: u32) -> Result<()> {
     let destination_folder = Path::new(destination)
         .parent()
         .ok_or_else(|| anyhow!("Failed to get parent dir"))?;
@@ -27,6 +28,8 @@ pub fn safe_rename(source: &str, destination: &str) -> Result<()> {
             &destination_folder.display()
         )
     })?;
+    chmod(destination_folder.to_str().unwrap(), mode)?;
+
     println!("Moving photo from {} to {}", source, destination);
     fs::rename(source, destination)
         .with_context(|| format!("Failed to move photo from {} to {}", source, destination))
@@ -61,4 +64,10 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
             "Failed to find unique file path for: {}",
             file_path
         ))
+}
+
+pub fn chmod(file_path: &str, mode: u32) -> Result<()> {
+    let mut perms = fs::metadata(&file_path)?.permissions();
+    perms.set_mode(mode);
+    fs::set_permissions(file_path, perms).map_err(|e| e.into())
 }
