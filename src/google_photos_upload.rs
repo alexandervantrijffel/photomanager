@@ -1,4 +1,5 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
+use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::{env, fs};
@@ -81,17 +82,18 @@ impl GooglePhotosClient {
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
-        self.create_album(&album_name).await.context(format!(
+        let album = self.create_album(&album_name).await.context(format!(
             "failed to create google photos album {}",
             &album_name
         ))?;
 
-        println!("Created google photos album {}", &album_name);
+        println!("Created google photos album {:?}", &album);
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
             .context("Failed to upload image to google photos: {:?}")?;
-        Ok(())
+        self.batch_create_media(&upload_token, album.id.as_str())
+            .await
     }
     async fn upload_image_bytes(&self, image_path: &str) -> Result<String> {
         let img_bytes = fs::read(image_path)?;
@@ -148,6 +150,42 @@ impl GooglePhotosClient {
         Ok(response_body.to_owned())
     }
 
+    async fn batch_create_media(&self, upload_token: &str, album_id: &str) -> Result<()> {
+        let client = reqwest::Client::new();
+        let response = client
+            .post("https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate")
+            .headers(self.get_auth_headers()?)
+            .json(&json!({
+                "albumId": album_id,
+                "newMediaItems": [
+                    {
+                        "description": "test",
+                        "simpleMediaItem": {
+                            "uploadToken": upload_token
+                        }
+                    }
+                ]
+            }))
+            .send()
+            .await?;
+
+        let status = &response.status();
+        let response_body = &response.text().await?;
+        if !status.is_success() {
+            return Err(anyhow::anyhow!(
+                "Failed to batch create media in google photos. Status: {}. Response body: {}",
+                status,
+                response_body
+            ));
+        }
+
+        println!(
+            "Batch create media completed with status: {}. Text: {}",
+            status, response_body
+        );
+
+        Ok(())
+    }
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
         // this is needed to prevent the panic of a blocking reqwest call:
         // Cannot drop a runtime in a context where blocking is not allowed" panic in the blocking Client
@@ -183,26 +221,29 @@ impl GooglePhotosClient {
             Ok(token_result.access_token().secret().clone())
         })
     }
-
-    async fn create_album(&self, album_name: &str) -> Result<()> {
-        let url = "https://photoslibrary.googleapis.com/v1/albums";
-
-        let body = json!({
-            "album": {
-                "title": album_name
-            }
-        });
-
-        let client = reqwest::Client::new();
-        let res = client
-            .post(url)
+    // Response: "{\n  \"id\": \"AAtjo178WscbSYB5Zsw-XSrhgTWZVPwC_QMON-YzKCYwWScFZe1Gs8U-I4WEQ-5GT_2pJqOmfwXf\",\n  \"title\": \"001-best-a-2019-family\",\n  \"productUrl\": \"https://photos.google.com/lr/album/AAtjo178WscbSYB5Zsw-XSrhgTWZVPwC_QMON-YzKCYwWScFZe1Gs8U-I4WEQ-5GT_2pJqOmfwXf\",\n  \"isWriteable\": true\n}\n"
+    async fn create_album(&self, album_name: &str) -> Result<Album> {
+        let res = reqwest::Client::new()
+            .post("https://photoslibrary.googleapis.com/v1/albums")
             .headers(self.get_auth_headers()?)
-            .json(&body)
+            .json(&json!({
+                "album": {
+                    "title": album_name
+                }
+            }))
             .send()
             .await?;
-        println!("Response: {:?}", res.text().await?);
 
-        Ok(())
+        let response_body = &res.text().await?;
+        println!("Create album Response: {:?}", response_body);
+
+        Ok(serde_json::from_str::<Album>(response_body).map_err(|e| {
+            anyhow!(
+                "Failed to create album in google photos. Response body: {}. Error: {}",
+                response_body,
+                e
+            )
+        })?)
     }
 
     fn get_auth_headers(&self) -> Result<HeaderMap> {
@@ -221,6 +262,14 @@ impl GooglePhotosClient {
 
         Ok(headers)
     }
+}
+
+#[derive(Deserialize, Debug)]
+struct Album {
+    id: String,
+    // title: String,
+    // product_url: String,
+    // is_writeable: bool,
 }
 
 struct OauthSecrets {
