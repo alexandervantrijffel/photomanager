@@ -19,6 +19,15 @@ struct UploadRequestContext {
     enabled: bool,
 }
 
+// todo:
+// query existing album instead of creating a new album every time
+// get access token failed once (refresh token was expired or revoked?)
+// refresh access token when it has expired
+// retry google drive upload with new access token when it had to be refreshed
+// add env vars for google drive uploads to k3s manifests
+// make sure that google upload errors become visible
+// perf: hashmap for known albums
+
 pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<ReviewedPhoto>> {
     if review.score != ReviewScore::Best {
         return Ok(());
@@ -87,7 +96,6 @@ impl GooglePhotosClient {
             &album_name
         ))?;
 
-        println!("Created google photos album {:?}", &album);
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
@@ -179,12 +187,10 @@ impl GooglePhotosClient {
             ));
         }
 
-        println!(
+        Ok(println!(
             "Batch create media completed with status: {}. Text: {}",
             status, response_body
-        );
-
-        Ok(())
+        ))
     }
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
         // this is needed to prevent the panic of a blocking reqwest call:
@@ -192,9 +198,6 @@ impl GooglePhotosClient {
         // see https://github.com/seanmonstar/reqwest/issues/1017
         tokio::task::block_in_place(|| {
             println!("Getting Google Photos client access token");
-            // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and
-            // token URL.
-            //
             let client = BasicClient::new(
                 ClientId::new(oauth_secrets.client_id.clone()),
                 Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
@@ -202,26 +205,22 @@ impl GooglePhotosClient {
                 Some(TokenUrl::new(
                     "https://oauth2.googleapis.com/token".to_string(),
                 )?),
-            )
-            // Set the URL the user will be redirected to after the authorization process.
-            .set_redirect_uri(RedirectUrl::new(
-                "http://localhost:3000/auth/google/callback".to_string(),
-            )?);
+            );
+            // Set the URL the user will be redirected to after the authorization process (not
+            // used)
+            // .set_redirect_uri(RedirectUrl::new(
+            //     "http://localhost:3000/auth/google/callback".to_string(),
+            // )
 
             // Unwrapping token_result will either produce a Token or a RequestTokenError.
-            let token_result = client
+            Ok(client
                 .exchange_refresh_token(&RefreshToken::new(oauth_secrets.refresh_token.clone()))
-                .request(http_client)?;
-
-            println!(
-                "Google Photos client access token: {}",
-                token_result.access_token().secret()
-            );
-
-            Ok(token_result.access_token().secret().clone())
+                .request(http_client)?
+                .access_token()
+                .secret()
+                .clone())
         })
     }
-    // Response: "{\n  \"id\": \"AAtjo178WscbSYB5Zsw-XSrhgTWZVPwC_QMON-YzKCYwWScFZe1Gs8U-I4WEQ-5GT_2pJqOmfwXf\",\n  \"title\": \"001-best-a-2019-family\",\n  \"productUrl\": \"https://photos.google.com/lr/album/AAtjo178WscbSYB5Zsw-XSrhgTWZVPwC_QMON-YzKCYwWScFZe1Gs8U-I4WEQ-5GT_2pJqOmfwXf\",\n  \"isWriteable\": true\n}\n"
     async fn create_album(&self, album_name: &str) -> Result<Album> {
         let res = reqwest::Client::new()
             .post("https://photoslibrary.googleapis.com/v1/albums")
@@ -235,7 +234,7 @@ impl GooglePhotosClient {
             .await?;
 
         let response_body = &res.text().await?;
-        println!("Create album Response: {:?}", response_body);
+        println!("Create Google Drive Album Response: {}", response_body);
 
         Ok(serde_json::from_str::<Album>(response_body).map_err(|e| {
             anyhow!(
