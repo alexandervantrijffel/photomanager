@@ -31,11 +31,12 @@ pub(crate) async fn run_http_server() {
                 .layer(TraceLayer::new_for_http())
                 .into_make_service(),
         )
-        .with_graceful_shutdown(shutdown_signal())
+        // .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }
 
+#[allow(dead_code)]
 async fn shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()

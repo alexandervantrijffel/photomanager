@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::{env, fs};
@@ -10,7 +10,7 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, RefreshToken, TokenRe
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reviewscore::ReviewScore;
 
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::json;
 
 struct UploadRequestContext {
@@ -52,8 +52,9 @@ fn init_upload_requester() -> UploadRequestContext {
 
             let client = GooglePhotosClient::new(&oauth_secrets);
             for req in receiver {
-                println!("on recv");
-                client.upload_photo(req).await;
+                if let Err(e) = client.upload_photo(req).await {
+                    println!("Failed to upload photo to Google Photos: {}", e);
+                };
             }
         });
     } else {
@@ -72,46 +73,33 @@ impl GooglePhotosClient {
             access_token: Self::get_access_token(oauth_secrets),
         }
     }
-    async fn upload_photo(&self, req: ReviewedPhoto) {
+    async fn upload_photo(&self, req: ReviewedPhoto) -> Result<()> {
         println!("Uploading photo to Google Photos: {:?}", req);
 
-        if !&self.access_token.is_ok() {
-            println!(
-                "Failed to get google photos access token. Upload to google photos is disabled."
-            );
-            return;
+        if let Err(e) = &self.access_token {
+            bail!("Failed to get google photos access token. Upload to google photos is disabled. Error: {}", e);
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
-        match create_album(self.access_token.as_ref().unwrap(), &album_name).await {
-            Ok(_) => println!("Created google photos album {}", &album_name),
-            Err(e) => println!(
-                "Failed to create google photos album {}: {:?}",
-                &album_name, e
-            ),
-        }
+        self.create_album(&album_name).await.context(format!(
+            "failed to create google photos album {}",
+            &album_name
+        ))?;
+
+        println!("Created google photos album {}", &album_name);
+        let upload_token = self
+            .upload_image_bytes(&req.image.full_path)
+            .await
+            .context("Failed to upload image to google photos: {:?}")?;
+        Ok(())
     }
-    #[allow(dead_code)]
-    async fn upload_image_bytes(&self, image_path: &str) -> Result<()> {
+    async fn upload_image_bytes(&self, image_path: &str) -> Result<String> {
         let img_bytes = fs::read(image_path)?;
 
-        let mut headers = HeaderMap::new();
-
-        match &self.access_token {
-            Ok(token) => {
-                headers.insert(AUTHORIZATION, format!("Bearer {}", &token).parse().unwrap())
-            }
-            Err(_) => {
-                return Err(anyhow::anyhow!(
-                    "cannot upload image to google because no access token is available"
-                        .to_string()
-                ))
-            }
-        };
+        let mut headers = self.get_auth_headers()?;
         headers.insert(CONTENT_TYPE, "application/octet-stream".parse().unwrap());
         headers.insert("X-Goog-Upload-Protocol", "raw".parse().unwrap()); //
                                                                           //
-
         let mime_type = match PathBuf::from(image_path)
             .extension()
             .unwrap()
@@ -137,16 +125,29 @@ impl GooglePhotosClient {
 
         let client = reqwest::Client::new();
         let response = client
-            .post("https://photos.googleapis.com/upload/rest/of/your/endpoint")
+            .post("https://photoslibrary.googleapis.com/v1/uploads")
             .headers(headers)
             .body(img_bytes)
             .send()
             .await?;
 
-        println!("Upload completed with status: {}", response.status());
+        let status = &response.status();
+        let response_body = &response.text().await?;
+        if !status.is_success() {
+            return Err(anyhow::anyhow!(
+                "Failed to upload image to google photos. Status: {}. Response body: {}",
+                status,
+                response_body
+            ));
+        }
+        println!(
+            "Upload completed with status: {}. Text: {}",
+            status, response_body
+        );
 
-        Ok(())
+        Ok(response_body.to_owned())
     }
+
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
         // this is needed to prevent the panic of a blocking reqwest call:
         // Cannot drop a runtime in a context where blocking is not allowed" panic in the blocking Client
@@ -155,6 +156,7 @@ impl GooglePhotosClient {
             println!("Getting Google Photos client access token");
             // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and
             // token URL.
+            //
             let client = BasicClient::new(
                 ClientId::new(oauth_secrets.client_id.clone()),
                 Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
@@ -180,6 +182,44 @@ impl GooglePhotosClient {
 
             Ok(token_result.access_token().secret().clone())
         })
+    }
+
+    async fn create_album(&self, album_name: &str) -> Result<()> {
+        let url = "https://photoslibrary.googleapis.com/v1/albums";
+
+        let body = json!({
+            "album": {
+                "title": album_name
+            }
+        });
+
+        let client = reqwest::Client::new();
+        let res = client
+            .post(url)
+            .headers(self.get_auth_headers()?)
+            .json(&body)
+            .send()
+            .await?;
+        println!("Response: {:?}", res.text().await?);
+
+        Ok(())
+    }
+
+    fn get_auth_headers(&self) -> Result<HeaderMap> {
+        let mut headers = HeaderMap::new();
+        match &self.access_token {
+            Ok(token) => {
+                headers.insert(AUTHORIZATION, format!("Bearer {}", &token).parse().unwrap());
+            }
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "cannot upload image to google because no access token is available"
+                        .to_string()
+                ))
+            }
+        };
+
+        Ok(headers)
     }
 }
 
@@ -208,26 +248,4 @@ impl OauthSecrets {
     fn string_from_env_or_default(env_var_name: &str) -> String {
         env::var(env_var_name).unwrap_or("".to_string())
     }
-}
-
-async fn create_album(access_token: &str, album_name: &str) -> Result<()> {
-    let url = "https://photoslibrary.googleapis.com/v1/albums";
-
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        AUTHORIZATION,
-        HeaderValue::from_str(format!("Bearer {}", access_token).as_str())?,
-    );
-
-    let body = json!({
-        "album": {
-            "title": album_name
-        }
-    });
-
-    let client = reqwest::Client::new();
-    let res = client.post(url).headers(headers).json(&body).send().await?;
-    println!("Response: {:?}", res.text().await?);
-
-    Ok(())
 }
