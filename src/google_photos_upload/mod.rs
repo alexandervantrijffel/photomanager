@@ -1,0 +1,68 @@
+mod google_photos_client;
+
+use anyhow::Result;
+use std::sync::mpsc;
+
+use crate::image::PhotoReview as ReviewedPhoto;
+use crate::reviewscore::ReviewScore;
+
+use self::google_photos_client::{GooglePhotosClient, OauthSecrets};
+
+struct UploadRequestContext {
+    sender: mpsc::Sender<ReviewedPhoto>,
+    enabled: bool,
+}
+
+// todo:
+// query existing album instead of creating a new album every time
+// get access token failed once (refresh token was expired or revoked?)
+// refresh access token when it has expired
+// retry google drive upload with new access token when it had to be refreshed
+// add env vars for google drive uploads to k3s manifests
+// make sure that google upload errors become visible
+// perf: hashmap for known albums
+
+pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<ReviewedPhoto>> {
+    if review.score != ReviewScore::Best {
+        return Ok(());
+    }
+    UPLOAD_REQUESTER.with(|ctx| {
+        if !ctx.enabled {
+            println!("Google photos upload is disabled because env vars are not set");
+            Ok(())
+        } else {
+            ctx.sender.send(review)
+        }
+    })
+}
+
+thread_local! {
+    static UPLOAD_REQUESTER: UploadRequestContext = init_upload_requester();
+}
+
+fn init_upload_requester() -> UploadRequestContext {
+    let (sender, receiver) = mpsc::channel::<ReviewedPhoto>();
+
+    let oauth_secrets = OauthSecrets::from_env();
+
+    let ctx = UploadRequestContext {
+        enabled: oauth_secrets.is_valid,
+        sender,
+    };
+
+    if ctx.enabled {
+        tokio::spawn(async move {
+            println!("Starting Google Photos upload thread");
+
+            let client = GooglePhotosClient::new(&oauth_secrets);
+            for req in receiver {
+                if let Err(e) = client.upload_photo(req).await {
+                    println!("Failed to upload photo to Google Photos: {}", e);
+                };
+            }
+        });
+    } else {
+        println!("Google photos upload is disabled because env vars are not set");
+    }
+    ctx
+}
