@@ -9,6 +9,7 @@ use oauth2::{AuthUrl, ClientId, ClientSecret, RefreshToken, TokenResponse, Token
 
 use crate::google_photos_upload::album::get_album_id;
 use crate::image::PhotoReview as ReviewedPhoto;
+use crate::reqwops;
 
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::json;
@@ -68,7 +69,6 @@ impl GooglePhotosClient {
         .expect("Failed to get mime type of extension");
 
         headers.insert("X-Goog-Upload-Content-Type", mime_type.parse().unwrap()); //
-                                                                                  // accepted file types BMP, GIF, HEIC, ICO, JPG, PNG, TIFF, WEBP, some RAW files.
 
         let client = reqwest::Client::new();
         let response = client
@@ -98,11 +98,10 @@ impl GooglePhotosClient {
     }
 
     async fn batch_create_media(&self, upload_token: &str, album_id: &str) -> Result<()> {
-        let client = reqwest::Client::new();
-        let response = client
-            .post("https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate")
-            .headers(self.get_auth_headers()?)
-            .json(&json!({
+        let post_result = reqwops::post_json(
+            "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate",
+            self.get_auth_headers()?,
+            &json!({
                 "albumId": album_id,
                 "newMediaItems": [
                     {
@@ -112,27 +111,25 @@ impl GooglePhotosClient {
                         }
                     }
                 ]
-            }))
-            .send()
-            .await?;
-
-        let status = &response.status();
-        let response_body = &response.text().await?;
-        if !status.is_success() {
+            }),
+        )
+        .await?;
+        if !post_result.status.is_success() {
             return Err(anyhow::anyhow!(
                 "Failed to batch create media in google photos. Status: {}. Response body: {}",
-                status,
-                response_body
+                post_result.status,
+                post_result.response_body
             ));
         }
 
         Ok(event!(
             Level::DEBUG,
             "Batch create media completed with status: {}. Text: {}",
-            status,
-            response_body
+            post_result.status,
+            post_result.response_body
         ))
     }
+
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
         // this is needed to prevent the panic of a blocking reqwest call:
         // Cannot drop a runtime in a context where blocking is not allowed" panic in the blocking Client
