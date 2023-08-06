@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{env, fs};
 use tracing::{event, Level};
 
@@ -17,12 +18,14 @@ use serde_json::json;
 #[derive(Debug)]
 pub struct GooglePhotosClient {
     access_token: Result<String>,
+    reqwest_client: Arc<reqwest::Client>,
 }
 
 impl GooglePhotosClient {
     pub fn new(oauth_secrets: &OauthSecrets) -> GooglePhotosClient {
         GooglePhotosClient {
             access_token: Self::get_access_token(oauth_secrets),
+            reqwest_client: Arc::new(reqwest::Client::new()),
         }
     }
     pub async fn upload_photo(&self, req: &ReviewedPhoto) -> Result<()> {
@@ -33,7 +36,12 @@ impl GooglePhotosClient {
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
-        let album_id = get_album_id(&album_name, self.get_auth_headers()?).await?;
+        let album_id = get_album_id(
+            &album_name,
+            self.get_auth_headers()?,
+            Arc::clone(&self.reqwest_client),
+        )
+        .await?;
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
@@ -70,8 +78,7 @@ impl GooglePhotosClient {
 
         headers.insert("X-Goog-Upload-Content-Type", mime_type.parse().unwrap()); //
 
-        let client = reqwest::Client::new();
-        let response = client
+        let response = Arc::clone(&self.reqwest_client)
             .post("https://photoslibrary.googleapis.com/v1/uploads")
             .headers(headers)
             .body(img_bytes)
@@ -101,6 +108,7 @@ impl GooglePhotosClient {
         let post_result = reqwops::post_json(
             "https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate",
             self.get_auth_headers()?,
+            Arc::clone(&self.reqwest_client),
             &json!({
                 "albumId": album_id,
                 "newMediaItems": [

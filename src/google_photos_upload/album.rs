@@ -1,19 +1,30 @@
+use std::sync::Arc;
+
 use anyhow::{anyhow, Context, Result};
 use hyper::HeaderMap;
 use serde::Deserialize;
 use serde_json::json;
 use tracing::{event, Level};
-pub async fn get_album_id(title: &str, auth_headers: HeaderMap) -> Result<String> {
-    Ok(create_album(title, auth_headers)
+pub async fn get_album_id(
+    title: &str,
+    auth_headers: HeaderMap,
+    reqwest_client: Arc<reqwest::Client>,
+) -> Result<String> {
+    Ok(create_album(title, auth_headers, reqwest_client)
         .await
         .with_context(|| format!("failed to create google photos album {}", &title))?
         .id)
 }
 
-async fn create_album(title: &str, auth_headers: HeaderMap) -> Result<Album> {
+async fn create_album(
+    title: &str,
+    auth_headers: HeaderMap,
+    reqwest_client: Arc<reqwest::Client>,
+) -> Result<Album> {
     let post_result = crate::reqwops::post_json(
         "https://photoslibrary.googleapis.com/v1/albums",
         auth_headers,
+        reqwest_client,
         &json!({
             "album": {
                 "title": title

@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use hyper::HeaderMap;
 
 pub async fn post_json(
     url: &str,
     headers: HeaderMap,
+    client: Arc<reqwest::Client>,
     json: &serde_json::Value,
 ) -> Result<ReqwestResult> {
-    let client = reqwest::Client::new();
     let response = client.post(url).headers(headers).json(json).send().await?;
 
     let status = &response.status();
