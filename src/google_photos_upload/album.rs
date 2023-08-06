@@ -11,28 +11,27 @@ pub async fn get_album_id(title: &str, auth_headers: HeaderMap) -> Result<String
 }
 
 async fn create_album(title: &str, auth_headers: HeaderMap) -> Result<Album> {
-    let res = reqwest::Client::new()
-        .post("https://photoslibrary.googleapis.com/v1/albums")
-        .headers(auth_headers)
-        .json(&json!({
+    let post_result = crate::reqwops::post_json(
+        "https://photoslibrary.googleapis.com/v1/albums",
+        auth_headers,
+        &json!({
             "album": {
                 "title": title
             }
-        }))
-        .send()
-        .await?;
+        }),
+    )
+    .await?;
 
-    let response_body = &res.text().await?;
     event!(
         Level::DEBUG,
         "Create Google Drive Album Response: {}",
-        response_body
+        post_result.response_body
     );
 
-    serde_json::from_str::<Album>(response_body).map_err(|e| {
+    serde_json::from_str::<Album>(&post_result.response_body).map_err(|e| {
         anyhow!(
             "Failed to create album in google photos. Response body: {}. Error: {}",
-            response_body,
+            post_result.response_body,
             e
         )
     })

@@ -5,6 +5,7 @@ mod graphql_server;
 mod http_server;
 mod image;
 pub mod model;
+mod reqwops;
 pub mod reviewscore;
 
 use dotenvy::dotenv;
