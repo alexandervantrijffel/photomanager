@@ -67,7 +67,7 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
 }
 
 pub fn chmod(file_path: &str, mode: u32) -> Result<()> {
-    let mut perms = fs::metadata(&file_path)?.permissions();
+    let mut perms = fs::metadata(file_path)?.permissions();
     perms.set_mode(mode);
     fs::set_permissions(file_path, perms).map_err(|e| e.into())
 }
