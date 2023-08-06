@@ -30,7 +30,10 @@ pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<R
     }
     UPLOAD_REQUESTER.with(|ctx| {
         if !ctx.enabled {
-            println!("Google photos upload is disabled because env vars are not set");
+            event!(
+                Level::INFO,
+                "Google photos upload is disabled because env vars are not set"
+            );
             Ok(())
         } else {
             ctx.sender.send(review)
@@ -55,8 +58,6 @@ fn init_upload_requester() -> UploadRequestContext {
     }
 
     tokio::spawn(async move {
-        println!("Starting Google Photos upload thread");
-
         let client = GooglePhotosClient::new(&oauth_secrets);
         for req in receiver {
             single_run_upload_photo(&req, &client).await;

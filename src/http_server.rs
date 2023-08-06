@@ -62,7 +62,7 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
-    println!("signal received, starting graceful shutdown");
+    event!(Level::INFO, "signal received, starting graceful shutdown");
 }
 
 async fn ready_handler() -> impl IntoResponse {

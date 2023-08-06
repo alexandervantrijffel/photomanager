@@ -13,6 +13,7 @@ use axum::{
     routing::get,
     Router,
 };
+use tracing::{event, Level};
 
 async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(
@@ -26,7 +27,6 @@ async fn graphql_handler(
     _headers: HeaderMap,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
-    // println!("GQL request. Headers: {:?}", headers);
     schema.execute(req.into_inner()).await.into()
 }
 
@@ -48,8 +48,9 @@ async fn graphql_ws_handler(
 pub(crate) async fn run_graphql_server(router: Router) -> Router {
     // async-graphql-examples
     // https://github.com/async-graphql/examples
-    println!(
-        "Photomanager graphql server.\nVisit {}/graphql to use the playground.",
+    event!(
+        Level::INFO,
+        "Photomanager GraphQL server.\nVisit {}/graphql to use the playground.",
         env::var("PUBLIC_URL").expect("'PUBLIC_URL' environment variable is required"),
     );
     router
