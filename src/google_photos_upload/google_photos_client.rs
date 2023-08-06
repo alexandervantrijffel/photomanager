@@ -1,5 +1,4 @@
-use anyhow::{anyhow, bail, Context, Result};
-use serde::Deserialize;
+use anyhow::{bail, Context, Result};
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -7,6 +6,7 @@ use oauth2::basic::BasicClient;
 use oauth2::reqwest::http_client;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RefreshToken, TokenResponse, TokenUrl};
 
+use crate::google_photos_upload::album::get_album_id;
 use crate::image::PhotoReview as ReviewedPhoto;
 
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
@@ -30,16 +30,12 @@ impl GooglePhotosClient {
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
-        let album = self.create_album(&album_name).await.context(format!(
-            "failed to create google photos album {}",
-            &album_name
-        ))?;
-
+        let album_id = get_album_id(&album_name, self.get_auth_headers()?).await?;
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
             .context("Failed to upload image to google photos: {:?}")?;
-        self.batch_create_media(&upload_token, album.id.as_str())
+        self.batch_create_media(&upload_token, album_id.as_str())
             .await
     }
     async fn upload_image_bytes(&self, image_path: &str) -> Result<String> {
@@ -160,29 +156,6 @@ impl GooglePhotosClient {
                 .clone())
         })
     }
-    async fn create_album(&self, album_name: &str) -> Result<Album> {
-        let res = reqwest::Client::new()
-            .post("https://photoslibrary.googleapis.com/v1/albums")
-            .headers(self.get_auth_headers()?)
-            .json(&json!({
-                "album": {
-                    "title": album_name
-                }
-            }))
-            .send()
-            .await?;
-
-        let response_body = &res.text().await?;
-        println!("Create Google Drive Album Response: {}", response_body);
-
-        serde_json::from_str::<Album>(response_body).map_err(|e| {
-            anyhow!(
-                "Failed to create album in google photos. Response body: {}. Error: {}",
-                response_body,
-                e
-            )
-        })
-    }
 
     fn get_auth_headers(&self) -> Result<HeaderMap> {
         let mut headers = HeaderMap::new();
@@ -200,14 +173,6 @@ impl GooglePhotosClient {
 
         Ok(headers)
     }
-}
-
-#[derive(Deserialize, Debug)]
-struct Album {
-    id: String,
-    // title: String,
-    // product_url: String,
-    // is_writeable: bool,
 }
 
 pub struct OauthSecrets {

@@ -1,3 +1,4 @@
+mod album;
 mod google_photos_client;
 
 use anyhow::Result;
