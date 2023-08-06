@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use std::path::PathBuf;
 use std::{env, fs};
+use tracing::{event, Level};
 
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::http_client;
@@ -12,6 +13,7 @@ use crate::image::PhotoReview as ReviewedPhoto;
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::json;
 
+#[derive(Debug)]
 pub struct GooglePhotosClient {
     access_token: Result<String>,
 }
@@ -22,8 +24,8 @@ impl GooglePhotosClient {
             access_token: Self::get_access_token(oauth_secrets),
         }
     }
-    pub async fn upload_photo(&self, req: ReviewedPhoto) -> Result<()> {
-        println!("Uploading photo to Google Photos: {:?}", req);
+    pub async fn upload_photo(&self, req: &ReviewedPhoto) -> Result<()> {
+        event!(Level::INFO, "Uploading photo to Google Photos: {:?}", req);
 
         if let Err(e) = &self.access_token {
             bail!("Failed to get google photos access token. Upload to google photos is disabled. Error: {}", e);
@@ -34,7 +36,7 @@ impl GooglePhotosClient {
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
-            .context("Failed to upload image to google photos: {:?}")?;
+            .with_context(|| "Failed to upload image to google photos: {:?}")?;
         self.batch_create_media(&upload_token, album_id.as_str())
             .await
     }
@@ -85,9 +87,11 @@ impl GooglePhotosClient {
                 response_body
             ));
         }
-        println!(
+        event!(
+            Level::INFO,
             "Upload completed with status: {}. Text: {}",
-            status, response_body
+            status,
+            response_body
         );
 
         Ok(response_body.to_owned())
@@ -122,9 +126,11 @@ impl GooglePhotosClient {
             ));
         }
 
-        Ok(println!(
+        Ok(event!(
+            Level::DEBUG,
             "Batch create media completed with status: {}. Text: {}",
-            status, response_body
+            status,
+            response_body
         ))
     }
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
@@ -132,7 +138,7 @@ impl GooglePhotosClient {
         // Cannot drop a runtime in a context where blocking is not allowed" panic in the blocking Client
         // see https://github.com/seanmonstar/reqwest/issues/1017
         tokio::task::block_in_place(|| {
-            println!("Getting Google Photos client access token");
+            event!(Level::DEBUG, "Getting Google Photos client access token");
             let client = BasicClient::new(
                 ClientId::new(oauth_secrets.client_id.clone()),
                 Some(ClientSecret::new(oauth_secrets.client_secret.clone())),

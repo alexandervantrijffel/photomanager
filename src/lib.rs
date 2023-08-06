@@ -11,5 +11,6 @@ use dotenvy::dotenv;
 
 pub async fn run_server() {
     dotenv().ok();
+    console_subscriber::init();
     http_server::run_http_server().await;
 }

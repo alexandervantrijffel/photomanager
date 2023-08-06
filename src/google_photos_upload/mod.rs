@@ -3,6 +3,7 @@ mod google_photos_client;
 
 use anyhow::Result;
 use std::sync::mpsc;
+use tracing::{event, instrument, Level};
 
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reviewscore::ReviewScore;
@@ -43,27 +44,34 @@ thread_local! {
 
 fn init_upload_requester() -> UploadRequestContext {
     let (sender, receiver) = mpsc::channel::<ReviewedPhoto>();
-
     let oauth_secrets = OauthSecrets::from_env();
-
     let ctx = UploadRequestContext {
         enabled: oauth_secrets.is_valid,
         sender,
     };
 
-    if ctx.enabled {
-        tokio::spawn(async move {
-            println!("Starting Google Photos upload thread");
-
-            let client = GooglePhotosClient::new(&oauth_secrets);
-            for req in receiver {
-                if let Err(e) = client.upload_photo(req).await {
-                    println!("Failed to upload photo to Google Photos: {}", e);
-                };
-            }
-        });
-    } else {
-        println!("Google photos upload is disabled because env vars are not set");
+    if !ctx.enabled {
+        return ctx;
     }
+
+    tokio::spawn(async move {
+        println!("Starting Google Photos upload thread");
+
+        let client = GooglePhotosClient::new(&oauth_secrets);
+        for req in receiver {
+            single_run_upload_photo(&req, &client).await;
+        }
+    });
     ctx
+}
+
+#[instrument]
+async fn single_run_upload_photo(req: &ReviewedPhoto, client: &GooglePhotosClient) {
+    if let Err(e) = client.upload_photo(req).await {
+        event!(
+            Level::ERROR,
+            "Failed to upload photo to Google Photos: {}",
+            e
+        );
+    };
 }

@@ -6,12 +6,14 @@ use axum::*;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
+use tracing::{event, Level};
 
 use crate::graphql_server::run_graphql_server;
 use hyper::StatusCode;
 use tokio::signal;
 
 pub(crate) async fn run_http_server() {
+    event!(Level::INFO, "Starting HTTP server");
     let media_root_dir = shellexpand::env(
         &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
     )
