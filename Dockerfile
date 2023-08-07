@@ -1,4 +1,4 @@
-FROM rust:1.71.0 as build-env
+FROM rust:1.71.1 as build-env
 WORKDIR /app
 COPY . /app
 
