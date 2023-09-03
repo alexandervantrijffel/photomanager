@@ -147,10 +147,8 @@ impl GooglePhotosClient {
             let client = BasicClient::new(
                 ClientId::new(oauth_secrets.client_id.clone()),
                 Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
-                AuthUrl::new("https://accounts.google.com/o/oauth2/auth".to_string())?,
-                Some(TokenUrl::new(
-                    "https://oauth2.googleapis.com/token".to_string(),
-                )?),
+                AuthUrl::new("https://accounts.google.com/o/oauth2/auth".into())?,
+                Some(TokenUrl::new("https://oauth2.googleapis.com/token".into())?),
             );
             // Set the URL the user will be redirected to after the authorization process (not
             // used)
@@ -209,6 +207,6 @@ impl OauthSecrets {
     }
 
     fn string_from_env_or_default(env_var_name: &str) -> String {
-        env::var(env_var_name).unwrap_or("".to_string())
+        env::var(env_var_name).unwrap_or("".into())
     }
 }

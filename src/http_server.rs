@@ -14,11 +14,11 @@ use tokio::signal;
 
 pub(crate) async fn run_http_server() {
     event!(Level::INFO, "Starting HTTP server");
-    let media_root_dir = shellexpand::env(
+    let media_root_dir: String = shellexpand::env(
         &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
     )
     .unwrap()
-    .to_string();
+    .into();
 
     let app = Router::new()
         .nest_service("/media", ServeDir::new(media_root_dir))

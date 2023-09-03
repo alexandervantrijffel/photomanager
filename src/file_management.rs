@@ -21,7 +21,7 @@ pub struct FileManager {
 impl FileManager {
     pub fn new(media_path: &str) -> Self {
         FileManager {
-            root_dir: media_path.to_string(),
+            root_dir: media_path.into(),
         }
     }
 
@@ -54,7 +54,7 @@ impl FileManager {
         source_file: &str,
         destination_file: &str,
     ) -> Result<()> {
-        let mut final_destination_file = destination_file.to_string();
+        let mut final_destination_file = destination_file.into();
         if !can_safely_overwrite(source_file, destination_file)? {
             final_destination_file = get_unique_filepath(destination_file)?;
             event!(
@@ -88,7 +88,7 @@ impl FileManager {
             .iter()
             .find(|p| !p.album_name.is_empty())
             .map(|p| p.album_name.clone())
-            .unwrap_or_else(|| "unknown".to_string());
+            .unwrap_or_else(|| "unknown".into());
 
         let photos = image_files
             .iter()
@@ -99,7 +99,7 @@ impl FileManager {
                     .unwrap()
                     .to_str()
                     .unwrap_or("unknown")
-                    .to_string(),
+                    .into(),
             })
             .collect::<Vec<ImageToReview>>();
 
@@ -124,7 +124,7 @@ impl FileManager {
                         ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif"
                     })
             })
-            .map(|entry| entry.path().to_str().unwrap().to_string())
+            .map(|entry| entry.path().to_str().unwrap().into())
             .collect::<Vec<String>>();
 
         image_files.sort();
@@ -179,7 +179,7 @@ impl FileManager {
             .find_map(|img| {
                 img.path()
                     .parent()
-                    .and_then(|p| p.to_str().map(|s| s.to_string()))
+                    .and_then(|p| p.to_str().map(|s| s.into()))
             })
             .ok_or(anyhow!(
                 "No folders with images to review found under root folder {}",

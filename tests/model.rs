@@ -158,7 +158,7 @@ fn init_env() -> Result<String> {
     let tempdir = std::env::temp_dir().join("photomanager-tests");
     let mut rng = rand::thread_rng();
     let path = photomanagerlib::fsops::get_unique_filepath(tempdir.to_str().unwrap())
-        .map(|p| p + "--" + rng.gen_range(1..10000).to_string().as_str())?;
+        .map(|p| p + "--" + rng.gen_range(1..10000).into().as_str())?;
 
     std::env::set_var("PUBLIC_URL", "http://integration-test");
     Ok(path)

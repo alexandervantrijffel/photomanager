@@ -61,7 +61,7 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
         .find_map(|i| {
             let last_path_buf = dir.join(format!("{}-{}{}", title, i, ext));
             if !Path::new(&last_path_buf).exists() {
-                Some(last_path_buf.to_str().unwrap().to_string())
+                Some(last_path_buf.to_str().unwrap().into())
             } else {
                 None
             }

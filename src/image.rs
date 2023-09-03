@@ -40,8 +40,8 @@ pub struct Image {
 impl Image {
     pub fn new(relative_path: &str, root_dir: &str) -> Self {
         Image {
-            relative_path: relative_path.to_string(),
-            root_dir: root_dir.to_string(),
+            relative_path: relative_path.into(),
+            root_dir: root_dir.into(),
             full_path: format!(
                 "{}{}",
                 root_dir,
@@ -54,7 +54,7 @@ impl Image {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .to_string(),
+                .into(),
         }
     }
     pub fn from_full_path(full_path: &str, root_dir: &str) -> Self {
@@ -64,9 +64,9 @@ impl Image {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .to_string(),
-            root_dir: root_dir.to_string(),
-            full_path: full_path.to_string(),
+                .into(),
+            root_dir: root_dir.into(),
+            full_path: full_path.into(),
             album_name: PathBuf::from(full_path)
                 .parent()
                 .unwrap()
@@ -74,7 +74,7 @@ impl Image {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .to_string(),
+                .into(),
         }
     }
     // Returns <root_dir>/score/album/filename
@@ -85,6 +85,6 @@ impl Image {
             .join(PathBuf::from(&self.full_path).file_name().unwrap())
             .to_str()
             .unwrap()
-            .to_string())
+            .into())
     }
 }

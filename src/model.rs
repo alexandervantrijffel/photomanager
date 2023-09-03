@@ -24,7 +24,7 @@ pub fn new_schema(media_path: Option<&str>) -> ServiceSchema {
                 &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
             )
             .unwrap()
-            .to_string()
+            .into()
         }),
     ))
     .finish()
@@ -66,9 +66,9 @@ impl QueryRoot {
                 MutationResponse {
                     success: false,
                     output: PhotosToReview {
-                        base_url: "".to_string(),
+                        base_url: "".into(),
                         photos: vec![],
-                        folder_name: "".to_string(),
+                        folder_name: "".into(),
                         folder_image_count: 0,
                     },
                 }
