@@ -1,7 +1,11 @@
+use std::num::NonZeroU16;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use hyper::HeaderMap;
+use reqwest::Client;
+use serde::Serialize;
+use tracing::{event, Level};
 
 pub async fn post_json(
     url: &str,
@@ -31,4 +35,67 @@ pub async fn post_json(
 pub struct ReqwestResult {
     pub status: reqwest::StatusCode,
     pub response_body: String,
+}
+
+pub async fn get<T>(client: &Client, url: &str, headers: HeaderMap) -> Result<HttpResponse<T>>
+where
+    T: serde::de::DeserializeOwned + std::fmt::Debug,
+{
+    let response = client.get(url).headers(headers).send().await?;
+    let status = &response.status();
+    event!(
+        Level::DEBUG,
+        "Get reqwest {} status: {} Headers: {:#?}.",
+        url,
+        status,
+        response.headers(),
+    );
+    let response_body = &response.text().await?;
+
+    if !status.is_success() {
+        let err = format!(
+            "Failed to get {}. Status: {}. Response body: {}",
+            url, status, response_body
+        );
+        event!(Level::ERROR, "{}", err);
+        return Err(anyhow::anyhow!(err));
+    }
+
+    // event!(Level::DEBUG, "response Body: {}", response_body);
+    let data = serde_json::from_str::<T>(response_body)
+        .with_context(|| {
+            anyhow!(
+                "Failed to unmarshal REST response to type {}",
+                std::any::type_name::<T>()
+            )
+        })
+        .map(|r| {
+            event!(Level::DEBUG, "Get reqwest received: {:?}", r);
+            r
+        })?;
+    Ok(HttpResponse::<T> {
+        succeeded: true,
+        status: StatusCodeSerializable(NonZeroU16::new(status.as_u16()).unwrap()),
+        data,
+    })
+    // let result = response
+    //     .json::<BybitResponse<Position>>()
+    //     .await
+    //     .map_err(|e| anyhow::anyhow!("Error: {}", e));
+}
+
+#[derive(Debug, Serialize)]
+// #[serde(remote = "StatusCode")]
+pub struct StatusCodeSerializable(NonZeroU16);
+
+#[derive(Debug, Serialize)]
+pub struct HttpResponse<T>
+where
+    T: serde::de::DeserializeOwned + std::fmt::Debug,
+{
+    succeeded: bool,
+    // #[serde(with = "StatusCodeSerializable")]
+    // status: StatusCode,
+    status: StatusCodeSerializable,
+    data: T,
 }
