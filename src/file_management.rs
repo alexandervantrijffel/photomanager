@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::PathBuf;
 use std::{env, fs};
-use tracing::{event, Level};
+use tracing::info;
 
 use globwalk::GlobWalkerBuilder;
 
@@ -32,7 +32,7 @@ impl FileManager {
 
 impl FileManager {
     pub fn review_photo(&self, review: &PhotoReview) -> Result<ReviewedPhoto> {
-        event!(Level::INFO, "Reviewing photo: {:?}", review);
+        info!("Reviewing photo: {:?}", review);
         if !PathBuf::from(&review.image.full_path).exists() {
             bail!("Photo not found: {}", review.image.full_path)
         }
@@ -57,8 +57,7 @@ impl FileManager {
         let mut final_destination_file = destination_file.into();
         if !can_safely_overwrite(source_file, destination_file)? {
             final_destination_file = get_unique_filepath(destination_file)?;
-            event!(
-                Level::INFO,
+            info!(
                 "Destination file already exists, but contents are different. Moving to {}",
                 final_destination_file
             );
@@ -68,7 +67,7 @@ impl FileManager {
     }
 
     pub fn undo(&self, review: &PhotoReview) -> Result<()> {
-        event!(Level::INFO, "undoing review: {:?}", review);
+        info!("undoing review: {:?}", review);
         let destination_file = review.get_destination_path()?;
         if !PathBuf::from(&destination_file).exists() {
             bail!("Cannot undo, photo at [{}] not found", &destination_file)

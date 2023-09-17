@@ -3,7 +3,7 @@ use std::env;
 use async_graphql::{Context, EmptySubscription, Object, Schema};
 
 use async_graphql::{OutputType, SimpleObject};
-use tracing::{event, Level};
+use tracing::error;
 
 use crate::file_management::FileManager;
 use crate::google_photos_upload::upload_best_photos;
@@ -58,11 +58,7 @@ impl QueryRoot {
                 output: paths,
             })
             .unwrap_or_else(|err| {
-                event!(
-                    Level::ERROR,
-                    "Failed to retrieve photos_to_review: {:#}",
-                    err
-                );
+                error!("Failed to retrieve photos_to_review: {:#}", err);
                 MutationResponse {
                     success: false,
                     output: PhotosToReview {
@@ -120,7 +116,7 @@ impl MutationRoot {
             .map(upload_best_photos)
             .map(MutationResponse::succeeded)
             .unwrap_or_else(|err| {
-                event!(Level::ERROR, "Failed to review photo '{}': {:#}", path, err);
+                error!("Failed to review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
@@ -143,12 +139,7 @@ impl MutationRoot {
             })
             .map(MutationResponse::succeeded)
             .unwrap_or_else(|err| {
-                event!(
-                    Level::ERROR,
-                    "Failed to undo review photo '{}': {:#}",
-                    path,
-                    err
-                );
+                error!("Failed to undo review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),

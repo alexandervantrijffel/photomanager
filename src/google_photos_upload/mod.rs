@@ -3,7 +3,7 @@ mod google_photos_client;
 
 use anyhow::Result;
 use std::sync::mpsc;
-use tracing::{event, instrument, Level};
+use tracing::{error, info, instrument};
 
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reviewscore::ReviewScore;
@@ -30,10 +30,7 @@ pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<R
     }
     UPLOAD_REQUESTER.with(|ctx| {
         if !ctx.enabled {
-            event!(
-                Level::INFO,
-                "Google photos upload is disabled because env vars are not set"
-            );
+            info!("Google photos upload is disabled because env vars are not set");
             Ok(())
         } else {
             ctx.sender.send(review)
@@ -69,10 +66,6 @@ fn init_upload_requester() -> UploadRequestContext {
 #[instrument]
 async fn single_run_upload_photo(req: &ReviewedPhoto, client: &GooglePhotosClient) {
     if let Err(e) = client.upload_photo(req).await {
-        event!(
-            Level::ERROR,
-            "Failed to upload photo to Google Photos: {}",
-            e
-        );
+        error!("Failed to upload photo to Google Photos: {}", e);
     };
 }

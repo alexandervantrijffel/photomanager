@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use hyper::HeaderMap;
 use serde::Deserialize;
 use serde_json::json;
-use tracing::{event, Level};
+use tracing::debug;
 pub async fn get_album_id(
     title: &str,
     auth_headers: HeaderMap,
@@ -33,8 +33,7 @@ async fn create_album(
     )
     .await?;
 
-    event!(
-        Level::DEBUG,
+    debug!(
         "Create Google Drive Album Response: {}",
         post_result.response_body
     );

@@ -6,14 +6,14 @@ use axum::*;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tracing::{event, Level};
+use tracing::info;
 
 use crate::graphql_server::run_graphql_server;
 use hyper::StatusCode;
 use tokio::signal;
 
 pub(crate) async fn run_http_server() {
-    event!(Level::INFO, "Starting HTTP server");
+    info!("Starting HTTP server");
     let media_root_dir: String = shellexpand::env(
         &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
     )
@@ -62,7 +62,7 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
-    event!(Level::INFO, "signal received, starting graceful shutdown");
+    info!("signal received, starting graceful shutdown");
 }
 
 async fn ready_handler() -> impl IntoResponse {

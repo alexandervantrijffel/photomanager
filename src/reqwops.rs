@@ -5,7 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use hyper::HeaderMap;
 use reqwest::Client;
 use serde::Serialize;
-use tracing::{event, Level};
+use tracing::{debug, error};
 
 pub async fn post_json(
     url: &str,
@@ -43,8 +43,7 @@ where
 {
     let response = client.get(url).headers(headers).send().await?;
     let status = &response.status();
-    event!(
-        Level::DEBUG,
+    debug!(
         "Get reqwest {} status: {} Headers: {:#?}.",
         url,
         status,
@@ -57,11 +56,11 @@ where
             "Failed to get {}. Status: {}. Response body: {}",
             url, status, response_body
         );
-        event!(Level::ERROR, "{}", err);
+        error!("{}", err);
         return Err(anyhow::anyhow!(err));
     }
 
-    // event!(Level::DEBUG, "response Body: {}", response_body);
+    // debug!("response Body: {}", response_body);
     let data = serde_json::from_str::<T>(response_body)
         .with_context(|| {
             anyhow!(
@@ -70,7 +69,7 @@ where
             )
         })
         .map(|r| {
-            event!(Level::DEBUG, "Get reqwest received: {:?}", r);
+            debug!("Get reqwest received: {:?}", r);
             r
         })?;
     Ok(HttpResponse::<T> {

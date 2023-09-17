@@ -3,7 +3,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
-use tracing::{event, Level};
+use tracing::info;
 
 pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
     if !PathBuf::from(destination).exists() {
@@ -31,12 +31,7 @@ pub fn rename_with_create_dir_all(source: &str, destination: &str, mode: u32) ->
     })?;
     chmod(destination_folder.to_str().unwrap(), mode)?;
 
-    event!(
-        Level::INFO,
-        "Moving photo from {} to {}",
-        source,
-        destination
-    );
+    info!("Moving photo from {} to {}", source, destination);
     fs::rename(source, destination)
         .with_context(|| format!("Failed to move photo from {} to {}", source, destination))
 }
