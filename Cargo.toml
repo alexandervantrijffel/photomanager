@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = {version="1.0.71", features=["backtrace"]}
 async-graphql = "5.0.7"
-async-graphql-axum = "5.0.7"
+async-graphql-axum = "6.0.10"
 axum = {version="0.6.17",features= ["macros"]}
 console-subscriber = {version= "0.1.10", features =[ "parking_lot"]}
 dotenvy = "0.15.7"
