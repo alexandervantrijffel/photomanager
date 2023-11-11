@@ -9,7 +9,7 @@ name = "photomanagerlib"
 path = "src/lib.rs"
 
 [dependencies]
-anyhow = {version="1.0.71", features=["backtrace"]}
+anyhow = {version="1.0.75", features=["backtrace"]}
 async-graphql = "5.0.7"
 async-graphql-axum = "5.0.7"
 axum = {version="0.6.17",features= ["macros"]}
