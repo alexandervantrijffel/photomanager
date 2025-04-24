@@ -7,7 +7,6 @@ mod image;
 pub mod model;
 mod reqwops;
 pub mod reviewscore;
-
 use dotenvy::dotenv;
 
 pub async fn run_server() {

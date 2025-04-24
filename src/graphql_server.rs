@@ -1,18 +1,14 @@
-use std::env;
-
 use crate::model::{new_schema, ServiceSchema};
-// use async_graphql::*;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
-// use async_graphql_axum::*;
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
-// use axum::debug_handler;
 use axum::{
-    extract::{Extension, WebSocketUpgrade},
+    extract::Extension,
     http::HeaderMap,
     response::{Html, IntoResponse, Response},
     routing::get,
     Router,
 };
+use std::env;
 use tracing::info;
 
 async fn graphql_playground() -> impl IntoResponse {
@@ -33,7 +29,7 @@ async fn graphql_handler(
 async fn graphql_ws_handler(
     Extension(schema): Extension<ServiceSchema>,
     protocol: GraphQLProtocol,
-    websocket: WebSocketUpgrade,
+    websocket: axum::extract::ws::WebSocketUpgrade,
 ) -> Response {
     websocket
         .protocols(ALL_WEBSOCKET_PROTOCOLS)

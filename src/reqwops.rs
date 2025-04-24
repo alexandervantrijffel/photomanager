@@ -1,10 +1,9 @@
-use std::num::NonZeroU16;
-use std::sync::Arc;
-
 use anyhow::{anyhow, Context, Result};
 use hyper::HeaderMap;
 use reqwest::Client;
 use serde::Serialize;
+use std::num::NonZeroU16;
+use std::sync::Arc;
 use tracing::{debug, error};
 
 pub async fn post_json(
@@ -37,6 +36,7 @@ pub struct ReqwestResult {
     pub response_body: String,
 }
 
+#[allow(dead_code)]
 pub async fn get<T>(client: &Client, url: &str, headers: HeaderMap) -> Result<HttpResponse<T>>
 where
     T: serde::de::DeserializeOwned + std::fmt::Debug,
@@ -52,10 +52,7 @@ where
     let response_body = &response.text().await?;
 
     if !status.is_success() {
-        let err = format!(
-            "Failed to get {}. Status: {}. Response body: {}",
-            url, status, response_body
-        );
+        let err = format!("Failed to get {url}. Status: {status}. Response body: {response_body}",);
         error!("{}", err);
         return Err(anyhow::anyhow!(err));
     }

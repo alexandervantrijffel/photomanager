@@ -1,18 +1,18 @@
-use std::env;
-
+use crate::graphql_server::run_graphql_server;
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::*;
+use axum::Router;
+// only import this as dev-dependency
+// #[cfg(debug_assertions)]
+use listenfd::ListenFd;
+use std::env;
+use tokio::signal;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-use crate::graphql_server::run_graphql_server;
-use hyper::StatusCode;
-use tokio::signal;
-
-pub(crate) async fn run_http_server() {
+pub(crate) async fn run_http_server() -> anyhow::Result<()> {
     info!("Starting HTTP server");
     let media_root_dir: String = shellexpand::env(
         &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
@@ -25,17 +25,34 @@ pub(crate) async fn run_http_server() {
         .route("/healthz", get(liveness_handler))
         .route("/readyz", get(ready_handler));
 
-    Server::bind(&"0.0.0.0:8998".parse().unwrap())
-        .serve(
-            run_graphql_server(app)
-                .await
-                .layer(CorsLayer::permissive())
-                .layer(TraceLayer::new_for_http())
-                .into_make_service(),
-        )
-        // .with_graceful_shutdown(shutdown_signal())
+    let app = app
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http());
+
+    let app = run_graphql_server(app)
         .await
-        .unwrap();
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http());
+
+    // listenfd keeps a socket open on the target port,
+    // so that a request from the browser does not fail during compilation
+    let mut listenfd = ListenFd::from_env();
+    let listen_addr = "0.0.0.0:8998";
+
+    let listener = if let Some(listener) = listenfd.take_tcp_listener(0)? {
+        info!("Using listener from listenfd");
+        let _ = listener.set_nonblocking(true);
+        tokio::net::TcpListener::from_std(listener)?
+    } else {
+        info!("Using new TcpListener on {}", listen_addr);
+        tokio::net::TcpListener::bind(listen_addr).await?
+    };
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+
+    Ok(())
 }
 
 #[allow(dead_code)]
@@ -58,17 +75,17 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 
     info!("signal received, starting graceful shutdown");
 }
 
 async fn ready_handler() -> impl IntoResponse {
-    (StatusCode::OK, "OK")
+    (axum::http::StatusCode::OK, "OK")
 }
 
 async fn liveness_handler() -> impl IntoResponse {
-    (StatusCode::OK, "OK")
+    (axum::http::StatusCode::OK, "OK")
 }
