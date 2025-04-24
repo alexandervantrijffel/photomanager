@@ -30,8 +30,8 @@ spec:
               name: webserver
           volumeMounts:
             - mountPath: /srv/familyphotos/photos
-              name: familyphotos-pvc
-              subPath: photos
+              name: familyphotos-localstorage-pvc
+            # subPath: photos
           livenessProbe:
             httpGet:
               path: /healthz
@@ -47,8 +47,8 @@ spec:
             periodSeconds: 5
             failureThreshold: 3
       volumes:
-        - name: familyphotos-pvc
+        - name: familyphotos-localstorage-pvc
           persistentVolumeClaim:
-            claimName: familyphotos-pvc
+            claimName: familyphotos-localstorage-pvc
       nodeSelector:
         jellyfin-media-data: "true"

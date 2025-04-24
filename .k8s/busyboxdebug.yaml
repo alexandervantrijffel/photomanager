@@ -20,11 +20,11 @@ spec:
           args: ["while true; do sleep 30; done;"]
           volumeMounts:
             - mountPath: /srv/familyphotos/photos
-              name: familyphotos-pvc
+              name: familyphotos-localstorage-pvc
               subPath: photos
       volumes:
-        - name: familyphotos-pvc
+        - name: familyphotos-localstorage-pvc
           persistentVolumeClaim:
-            claimName: familyphotos-pvc
+            claimName: familyphotos-localstorage-pvc
       nodeSelector:
         jellyfin-media-data: "true"
