@@ -1,19 +1,17 @@
+use crate::google_photos_upload::album::get_album_id;
+use crate::image::PhotoReview as ReviewedPhoto;
+use crate::reqwops;
 use anyhow::{bail, Context, Result};
+// use oauth2::basic::BasicClient;
+// use oauth2::reqwest;
+// use oauth2::RefreshToken;
+// use oauth2::{AuthUrl, ClientId, ClientSecret, TokenUrl};
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::{env, fs};
 use tracing::{debug, info};
-
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::http_client;
-use oauth2::{AuthUrl, ClientId, ClientSecret, RefreshToken, TokenResponse, TokenUrl};
-
-use crate::google_photos_upload::album::get_album_id;
-use crate::image::PhotoReview as ReviewedPhoto;
-use crate::reqwops;
-
-use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
-use serde_json::json;
 
 #[derive(Debug)]
 pub struct GooglePhotosClient {
@@ -128,10 +126,11 @@ impl GooglePhotosClient {
             ));
         }
 
-        Ok(debug!(
+        debug!(
             "Batch create media completed with status: {}. Text: {}",
             post_result.status, post_result.response_body
-        ))
+        );
+        Ok(())
     }
 
     fn get_access_token(oauth_secrets: &OauthSecrets) -> Result<String> {
@@ -140,30 +139,70 @@ impl GooglePhotosClient {
         // see https://github.com/seanmonstar/reqwest/issues/1017
         tokio::task::block_in_place(|| {
             debug!("Getting Google Photos client access token");
-            let client = BasicClient::new(
-                ClientId::new(oauth_secrets.client_id.clone()),
-                Some(ClientSecret::new(oauth_secrets.client_secret.clone())),
-                AuthUrl::new("https://accounts.google.com/o/oauth2/auth".into())?,
-                Some(TokenUrl::new("https://oauth2.googleapis.com/token".into())?),
-            );
+
+            // this might not work!!
+            // try the official example from
+            // https://docs.rs/oauth2/latest/oauth2/#example-synchronous-blocking-api
+
+            // Manually create and execute the OAuth2 token refresh request
+            let http_client = reqwest::blocking::Client::new();
+
+            // OAuth2 token endpoint
+            let token_url = "https://oauth2.googleapis.com/token";
+
+            // Prepare the OAuth2 token request parameters
+            let params = [
+                ("client_id", oauth_secrets.client_id.as_str()),
+                ("client_secret", oauth_secrets.client_secret.as_str()),
+                ("refresh_token", oauth_secrets.refresh_token.as_str()),
+                ("grant_type", "refresh_token"),
+            ];
+
+            // Execute the request to exchange the refresh token for an access token
+            let response = http_client
+                .post(token_url)
+                .form(&params)
+                .header("Accept", "application/json")
+                .send()?;
+
+            if !response.status().is_success() {
+                bail!("Token refresh failed: {}", response.text()?);
+            }
+
+            let token_response: TokenResponse = response.json()?;
+            Ok(token_response.access_token)
+
+            // let client = BasicClient::new(ClientId::new(oauth_secrets.client_id.clone()))
+            //     .set_client_secret(ClientSecret::new(oauth_secrets.client_secret.clone()))
+            //     .set_auth_uri(AuthUrl::new(
+            //         "https://accounts.google.com/o/oauth2/auth".into(),
+            //     )?)
+            //     .set_token_uri(TokenUrl::new("https://oauth2.googleapis.com/token".into())?);
+
             // Set the URL the user will be redirected to after the authorization process (not
             // used)
             // .set_redirect_uri(RedirectUrl::new(
             //     "http://localhost:3000/auth/google/callback".to_string(),
             // )
 
+            // let http_client = reqwest::blocking::ClientBuilder::new()
+            //     // Following redirects opens the client up to SSRF vulnerabilities.
+            //     .redirect(reqwest::redirect::Policy::none())
+            //     .build()
+            //     .expect("Client should build");
+
             // Unwrapping token_result will either produce a Token or a RequestTokenError.
-            Ok(client
-                .exchange_refresh_token(&RefreshToken::new(oauth_secrets.refresh_token.clone()))
-                .request(http_client)?
-                .access_token()
-                .secret()
-                .clone())
+            // Ok(client
+            //     .exchange_refresh_token(&RefreshToken::new(oauth_secrets.refresh_token.clone()))
+            //     .request(&http_client)?
+            //     .access_token()
+            //     .secret()
+            //     .clone())
         })
     }
 
-    fn get_auth_headers(&self) -> Result<HeaderMap> {
-        let mut headers = HeaderMap::new();
+    fn get_auth_headers(&self) -> Result<hyper::HeaderMap> {
+        let mut headers = hyper::HeaderMap::new();
         match &self.access_token {
             Ok(token) => {
                 headers.insert(AUTHORIZATION, format!("Bearer {}", &token).parse().unwrap());
@@ -205,4 +244,14 @@ impl OauthSecrets {
     fn string_from_env_or_default(env_var_name: &str) -> String {
         env::var(env_var_name).unwrap_or("".into())
     }
+}
+
+// Parse the response to get the access token
+#[derive(serde::Deserialize)]
+struct TokenResponse {
+    access_token: String,
+    #[allow(dead_code)]
+    expires_in: u64,
+    #[allow(dead_code)]
+    token_type: String,
 }
