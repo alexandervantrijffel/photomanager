@@ -20,8 +20,8 @@ pub struct GooglePhotosClient {
 }
 
 impl GooglePhotosClient {
-    pub fn new(oauth_secrets: &OauthSecrets) -> GooglePhotosClient {
-        GooglePhotosClient {
+    pub fn new(oauth_secrets: &OauthSecrets) -> Self {
+        Self {
             access_token: Self::get_access_token(oauth_secrets),
             reqwest_client: Arc::new(reqwest::Client::new()),
         }
@@ -43,7 +43,7 @@ impl GooglePhotosClient {
         let upload_token = self
             .upload_image_bytes(&req.image.full_path)
             .await
-            .with_context(|| "Failed to upload image to google photos: {:?}")?;
+            .with_context(|| "Failed to upload image to google photos")?;
         self.batch_create_media(&upload_token, album_id.as_str())
             .await
     }
@@ -60,16 +60,14 @@ impl GooglePhotosClient {
             .to_str()
             .expect("Failed to get file extension of image_path")
         {
-            "jpg" => Ok("image/jpeg"),
-            "jpeg" => Ok("image/jpeg"),
+            "jpg" | "jpeg" => Ok("image/jpeg"),
             "png" => Ok("image/png"),
             "gif" => Ok("image/gif"),
             "heic" => Ok("image/heic"),
             "tiff" => Ok("image/tiff"),
             "webp" => Ok("image/webp"),
             other_ext => Err(format!(
-                "Mime type of exstension [{}] is not supported",
-                other_ext
+                "Mime type of exstension [{other_ext}] is not supported",
             )),
         }
         .expect("Failed to get mime type of extension");
@@ -213,7 +211,7 @@ impl GooglePhotosClient {
                         .to_string()
                 ))
             }
-        };
+        }
 
         Ok(headers)
     }
@@ -228,10 +226,10 @@ pub struct OauthSecrets {
 
 impl OauthSecrets {
     pub fn from_env() -> Self {
-        let mut oauth_secrets = OauthSecrets {
-            client_id: OauthSecrets::string_from_env_or_default("GOOGLE_CLIENT_ID"),
-            client_secret: OauthSecrets::string_from_env_or_default("GOOGLE_CLIENT_SECRET"),
-            refresh_token: OauthSecrets::string_from_env_or_default("GOOGLE_REFRESH_TOKEN"),
+        let mut oauth_secrets = Self {
+            client_id: Self::string_from_env_or_default("GOOGLE_CLIENT_ID"),
+            client_secret: Self::string_from_env_or_default("GOOGLE_CLIENT_SECRET"),
+            refresh_token: Self::string_from_env_or_default("GOOGLE_REFRESH_TOKEN"),
             is_valid: false,
         };
         oauth_secrets.is_valid = !oauth_secrets.client_id.is_empty()
@@ -242,7 +240,7 @@ impl OauthSecrets {
     }
 
     fn string_from_env_or_default(env_var_name: &str) -> String {
-        env::var(env_var_name).unwrap_or("".into())
+        env::var(env_var_name).unwrap_or_else(|_| String::new())
     }
 }
 

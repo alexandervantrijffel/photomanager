@@ -12,5 +12,7 @@ use dotenvy::dotenv;
 pub async fn run_server() {
     dotenv().ok();
     console_subscriber::init();
-    http_server::run_http_server().await;
+    if let Err(e) = http_server::run_http_server().await {
+        tracing::error!("Failed to run the HTTP server: {e}");
+    }
 }
