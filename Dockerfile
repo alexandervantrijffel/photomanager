@@ -1,6 +1,10 @@
-FROM rust:1.71.1 as build-env
+FROM rust:latest AS build-env
+
 WORKDIR /app
 COPY . /app
+
+RUN cargo version
+RUN rustc --version
 
 RUN cargo build --release
 
