@@ -29,11 +29,11 @@ pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<R
         return Ok(());
     }
     UPLOAD_REQUESTER.with(|ctx| {
-        if !ctx.enabled {
+        if ctx.enabled {
+            ctx.sender.send(review)
+        } else {
             info!("Google photos upload is disabled because env vars are not set");
             Ok(())
-        } else {
-            ctx.sender.send(review)
         }
     })
 }
@@ -67,5 +67,5 @@ fn init_upload_requester() -> UploadRequestContext {
 async fn single_run_upload_photo(req: &ReviewedPhoto, client: &GooglePhotosClient) {
     if let Err(e) = client.upload_photo(req).await {
         error!("Failed to upload photo to Google Photos: {}", e);
-    };
+    }
 }

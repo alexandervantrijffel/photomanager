@@ -8,22 +8,26 @@ pub enum ReviewScore {
     AlreadyReviewed,
 }
 impl ReviewScore {
-    pub fn as_str(&self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            ReviewScore::Best => "001-best",
-            ReviewScore::Good => "002-good",
-            ReviewScore::Worst => "003-worst",
-            ReviewScore::AlreadyReviewed => "already_reviewed",
+            Self::Best => "001-best",
+            Self::Good => "002-good",
+            Self::Worst => "003-worst",
+            Self::AlreadyReviewed => "already_reviewed",
         }
     }
 }
+
+#[must_use]
 pub fn get_review_scores() -> Vec<ReviewScore> {
     vec![ReviewScore::Best, ReviewScore::Good, ReviewScore::Worst]
 }
 
+#[must_use]
 pub fn get_review_scores_as_str() -> Vec<&'static str> {
     get_review_scores()
         .iter()
-        .map(|score| score.as_str())
+        .map(ReviewScore::as_str)
         .collect()
 }

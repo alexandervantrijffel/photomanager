@@ -17,9 +17,9 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new(media_path: &str) -> Self {
+    pub const fn new(media_path: String) -> Self {
         Self {
-            root_dir: media_path.into(),
+            root_dir: media_path,
         }
     }
 
@@ -35,7 +35,7 @@ impl FileManager {
             bail!("Photo not found: {}", review.image.full_path)
         }
 
-        let destination_path = review.get_destination_path()?;
+        let destination_path = review.get_destination_path();
 
         Self::move_file_prevent_overwrite_different_contents(
             &review.image.full_path,
@@ -65,7 +65,7 @@ impl FileManager {
 
     pub fn undo(review: &PhotoReview) -> Result<()> {
         info!("undoing review: {:?}", review);
-        let destination_file = review.get_destination_path()?;
+        let destination_file = review.get_destination_path();
         if !PathBuf::from(&destination_file).exists() {
             bail!("Cannot undo, photo at [{}] not found", &destination_file)
         }
@@ -83,8 +83,7 @@ impl FileManager {
         let folder_name = image_files
             .iter()
             .find(|p| !p.album_name.is_empty())
-            .map(|p| p.album_name.clone())
-            .unwrap_or_else(|| "unknown".into());
+            .map_or_else(|| "unknown".into(), |p| p.album_name.clone());
 
         let photos = image_files
             .iter()
@@ -116,9 +115,10 @@ impl FileManager {
             .filter(|entry| {
                 let path = entry.path();
                 path.is_file()
-                    && path.extension().map_or(false, |ext| {
-                        ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif"
-                    })
+                    && path.extension().map_or_else(
+                        || false,
+                        |ext| ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif",
+                    )
             })
             .map(|entry| entry.path().to_str().unwrap().into())
             .collect::<Vec<String>>();
@@ -133,18 +133,13 @@ impl FileManager {
             // exclude all images that have already been reviewed
             .filter(|img| {
                 !get_review_scores().iter().any(|score| {
-                    if have_equal_contents(
-                        &img.full_path,
-                        &img.get_destination_path(score)
-                            .expect("failed to get destination path"),
-                    )
-                    .unwrap_or(false)
+                    if have_equal_contents(&img.full_path, &img.get_destination_path(*score))
+                        .unwrap_or(false)
                     {
                         // move images that are already reviewed to the already_reviewed bucket
                         return rename_with_create_dir_all(
                             &img.full_path,
-                            &img.get_destination_path(&ReviewScore::AlreadyReviewed)
-                                .expect("failed to get destination path"),
+                            &img.get_destination_path(ReviewScore::AlreadyReviewed),
                             0o775,
                         )
                         // if the image was moved successfully, it shouldn't be reviewed
@@ -165,8 +160,7 @@ impl FileManager {
         excludes.extend(
             get_review_scores_as_str()
                 .iter()
-                .map(|f| format!("!**/{}/", f))
-                .collect::<Vec<String>>(),
+                .map(|f| format!("!**/{f}/")),
         );
 
         GlobWalkerBuilder::from_patterns(self.root_dir.as_str(), &excludes)
@@ -175,11 +169,13 @@ impl FileManager {
             .find_map(|img| {
                 img.path()
                     .parent()
-                    .and_then(|p| p.to_str().map(|s| s.into()))
+                    .and_then(|p| p.to_str().map(std::convert::Into::into))
             })
-            .ok_or(anyhow!(
-                "No folders with images to review found under root folder {}",
-                self.root_dir
-            ))
+            .ok_or_else(|| {
+                anyhow!(
+                    "No folders with images to review found under root folder {}",
+                    self.root_dir
+                )
+            })
     }
 }

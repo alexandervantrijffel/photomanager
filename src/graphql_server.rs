@@ -1,12 +1,12 @@
-use crate::model::{new_schema, ServiceSchema};
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, ALL_WEBSOCKET_PROTOCOLS};
+use crate::model::{ServiceSchema, new_schema};
+use async_graphql::http::{ALL_WEBSOCKET_PROTOCOLS, GraphQLPlaygroundConfig, playground_source};
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
+    Router,
     extract::Extension,
     http::HeaderMap,
     response::{Html, IntoResponse, Response},
     routing::get,
-    Router,
 };
 use std::env;
 use tracing::info;
