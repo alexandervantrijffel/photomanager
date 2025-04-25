@@ -1,7 +1,7 @@
 use crate::google_photos_upload::album::get_album_id;
 use crate::image::PhotoReview as ReviewedPhoto;
 use crate::reqwops;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 // use oauth2::basic::BasicClient;
 // use oauth2::reqwest;
 // use oauth2::RefreshToken;
@@ -30,7 +30,10 @@ impl GooglePhotosClient {
         info!("Uploading photo to Google Photos: {:?}", req);
 
         if let Err(e) = &self.access_token {
-            bail!("Failed to get google photos access token. Upload to google photos is disabled. Error: {}", e);
+            bail!(
+                "Failed to get google photos access token. Upload to google photos is disabled. Error: {}",
+                e
+            );
         }
 
         let album_name = format!("001-best-{}", req.image.album_name);
@@ -53,7 +56,7 @@ impl GooglePhotosClient {
         let mut headers = self.get_auth_headers()?;
         headers.insert(CONTENT_TYPE, "application/octet-stream".parse().unwrap());
         headers.insert("X-Goog-Upload-Protocol", "raw".parse().unwrap()); //
-                                                                          //
+        //
         let mime_type = match PathBuf::from(image_path)
             .extension()
             .unwrap()
@@ -209,7 +212,7 @@ impl GooglePhotosClient {
                 return Err(anyhow::anyhow!(
                     "cannot upload image to google because no access token is available"
                         .to_string()
-                ))
+                ));
             }
         }
 

@@ -1,10 +1,10 @@
-use std::sync::Arc;
-
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use hyper::HeaderMap;
 use serde::Deserialize;
 use serde_json::json;
+use std::sync::Arc;
 use tracing::debug;
+
 pub async fn get_album_id(
     title: &str,
     auth_headers: HeaderMap,

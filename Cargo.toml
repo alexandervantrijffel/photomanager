@@ -1,7 +1,7 @@
 [package]
 name = "photomanager"
-version = "0.1.0"
-edition = "2021"
+version = "0.0.0"
+edition = "2024"
 authors = ["avtnl <alexander@structura.ws>"]
 
 [lib]
@@ -36,4 +36,4 @@ panic = 'abort'     # Abort on panic
 strip = true        # Strip symbols from binary*
 
 [dev-dependencies]
-rand = "0"
+fastrand = "2.3.0"

@@ -8,12 +8,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - "**"
 
     paths-ignore:
       - "README.md"
-  # pull_request:
-  #   branches: [ main ]
 
 concurrency:
   group: deploytoprod
@@ -34,21 +32,24 @@ jobs:
           profile: minimal
           toolchain: stable
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: Install cargo-audit binary crate
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-audit
-          version: latest
-          use-tool-cache: true
+          override: true
+
+      - run: rustup toolchain install stable --profile minimal
+
       - name: checkout
         uses: actions/checkout@v3
+
+      - uses: Swatinem/rust-cache@v2
+      
       - name: cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
           # args: --release --all-features
-      - name: cargo clippy
+          #
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
+      - name: Cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
@@ -59,10 +60,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
+
+      - name: Install cargo-audit binary crate
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-audit
+          version: latest
+          use-tool-cache: true
       - name: Security audit
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Export env vars
         id: set-outputs
         run: |

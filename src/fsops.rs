@@ -1,8 +1,7 @@
+use anyhow::{Context, Result, anyhow};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-
-use anyhow::{anyhow, Context, Result};
 use tracing::info;
 
 pub fn can_safely_overwrite(source: &str, destination: &str) -> Result<bool> {
@@ -33,7 +32,7 @@ pub fn rename_with_create_dir_all(source: &str, destination: &str, mode: u32) ->
 
     info!("Moving photo from {} to {}", source, destination);
     fs::rename(source, destination)
-        .with_context(|| format!("Failed to move photo from {} to {}", source, destination))
+        .with_context(|| format!("Failed to move photo from {source} to {destination}"))
 }
 
 pub fn get_unique_filepath(file_path: &str) -> Result<String> {
@@ -49,26 +48,22 @@ pub fn get_unique_filepath(file_path: &str) -> Result<String> {
     let ext = path
         .extension()
         .and_then(|p| p.to_str())
-        .map(|s| ".".to_owned() + s)
-        .unwrap_or_else(|| "".to_owned());
+        .map_or_else(String::new, |s| String::from(".") + s);
 
     (1..=1000)
         .find_map(|i| {
-            let last_path_buf = dir.join(format!("{}-{}{}", title, i, ext));
-            if !Path::new(&last_path_buf).exists() {
-                Some(last_path_buf.to_str().unwrap().into())
-            } else {
+            let last_path_buf = dir.join(format!("{title}-{i}{ext}"));
+            if Path::new(&last_path_buf).exists() {
                 None
+            } else {
+                Some(last_path_buf.to_str().unwrap().into())
             }
         })
-        .ok_or(anyhow!(
-            "Failed to find unique file path for: {}",
-            file_path
-        ))
+        .ok_or_else(|| anyhow!("Failed to find unique file path for: {}", file_path))
 }
 
 pub fn chmod(file_path: &str, mode: u32) -> Result<()> {
     let mut perms = fs::metadata(file_path)?.permissions();
     perms.set_mode(mode);
-    fs::set_permissions(file_path, perms).map_err(|e| e.into())
+    fs::set_permissions(file_path, perms).map_err(std::convert::Into::into)
 }

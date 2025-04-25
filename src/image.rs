@@ -1,9 +1,6 @@
-use anyhow::Result;
-use std::path::{Path, PathBuf};
-
-use async_graphql::SimpleObject;
-
 use crate::reviewscore::ReviewScore;
+use async_graphql::SimpleObject;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct PhotoReview {
@@ -12,8 +9,8 @@ pub struct PhotoReview {
 }
 
 impl PhotoReview {
-    pub fn get_destination_path(&self) -> Result<String> {
-        self.image.get_destination_path(&self.score)
+    pub fn get_destination_path(&self) -> String {
+        self.image.get_destination_path(self.score)
     }
 }
 
@@ -39,7 +36,7 @@ pub struct Image {
 }
 impl Image {
     pub fn new(relative_path: &str, root_dir: &str) -> Self {
-        Image {
+        Self {
             relative_path: relative_path.into(),
             root_dir: root_dir.into(),
             full_path: format!(
@@ -58,7 +55,7 @@ impl Image {
         }
     }
     pub fn from_full_path(full_path: &str, root_dir: &str) -> Self {
-        Image {
+        Self {
             relative_path: Path::new(full_path)
                 .strip_prefix(Path::new(root_dir))
                 .unwrap()
@@ -78,13 +75,13 @@ impl Image {
         }
     }
     // Returns <root_dir>/score/album/filename
-    pub fn get_destination_path(&self, score: &ReviewScore) -> Result<String> {
-        Ok(PathBuf::from(&self.root_dir)
+    pub fn get_destination_path(&self, score: ReviewScore) -> String {
+        PathBuf::from(&self.root_dir)
             .join(score.as_str())
             .join(&self.album_name)
             .join(PathBuf::from(&self.full_path).file_name().unwrap())
             .to_str()
             .unwrap()
-            .into())
+            .into()
     }
 }

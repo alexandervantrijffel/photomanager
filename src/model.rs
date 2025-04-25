@@ -1,32 +1,25 @@
-use std::env;
-
-use async_graphql::{Context, EmptySubscription, Object, Schema};
-
-use async_graphql::{OutputType, SimpleObject};
-use tracing::error;
-
 use crate::file_management::FileManager;
 use crate::google_photos_upload::upload_best_photos;
 use crate::image::{PhotoReview, PhotosToReview};
 use crate::reviewscore::ReviewScore;
+use async_graphql::{Context, EmptySubscription, Object, Schema};
+use async_graphql::{OutputType, SimpleObject};
+use std::env;
+use tracing::error;
 
 pub type ServiceSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 
+#[must_use]
 pub fn new_schema(media_path: Option<&str>) -> ServiceSchema {
     Schema::build(
         QueryRoot::default(),
         MutationRoot::default(),
         EmptySubscription,
     )
-    .data(FileManager::new(
-        &media_path.map(|p| p.to_string()).unwrap_or_else(|| {
-            shellexpand::env(
-                &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
-            )
-            .unwrap()
-            .into()
-        }),
-    ))
+    .data(FileManager::new(media_path.map_or_else(
+        || env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
+        std::string::ToString::to_string,
+    )))
     .finish()
 }
 
@@ -49,26 +42,25 @@ impl QueryRoot {
     ///  }
     ///}
     #[graphql(name = "photosToReview")]
-    async fn photos_to_review(&self, _ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
-        _ctx.data::<FileManager>()
-            .unwrap()
-            .get_photos_to_review()
-            .map(|paths| MutationResponse {
+    async fn photos_to_review(&self, ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
+        match ctx.data::<FileManager>().unwrap().get_photos_to_review() {
+            Ok(paths) => MutationResponse {
                 success: true,
                 output: paths,
-            })
-            .unwrap_or_else(|err| {
+            },
+            Err(err) => {
                 error!("Failed to retrieve photos_to_review: {:#}", err);
                 MutationResponse {
                     success: false,
                     output: PhotosToReview {
-                        base_url: "".into(),
+                        base_url: String::new(),
                         photos: vec![],
-                        folder_name: "".into(),
+                        folder_name: String::new(),
                         folder_image_count: 0,
                     },
                 }
-            })
+            }
+        }
     }
 }
 
@@ -84,10 +76,11 @@ pub struct MutationResponse<T: OutputType> {
 }
 
 impl MutationResponse<String> {
+    #[must_use]
     pub fn succeeded<T>(_: T) -> Self {
         Self {
             success: true,
-            output: "".to_string(),
+            output: String::new(),
         }
     }
 }
@@ -108,20 +101,22 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
-        file_manager
+        match file_manager
             .review_photo(&PhotoReview {
                 image: file_manager.new_image(&path),
                 score,
             })
             .map(upload_best_photos)
-            .map(MutationResponse::succeeded)
-            .unwrap_or_else(|err| {
+        {
+            Ok(_) => MutationResponse::succeeded(String::new()),
+            Err(err) => {
                 error!("Failed to review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
                 }
-            })
+            }
+        }
     }
 
     #[graphql(name = "undo")]
@@ -132,18 +127,18 @@ impl MutationRoot {
         score: ReviewScore,
     ) -> MutationResponse<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
-        file_manager
-            .undo(&PhotoReview {
-                image: file_manager.new_image(&path),
-                score,
-            })
-            .map(MutationResponse::succeeded)
-            .unwrap_or_else(|err| {
+        match FileManager::undo(&PhotoReview {
+            image: file_manager.new_image(&path),
+            score,
+        }) {
+            Ok(()) => MutationResponse::succeeded(String::new()),
+            Err(err) => {
                 error!("Failed to undo review photo '{}': {:#}", path, err);
                 MutationResponse {
                     success: false,
                     output: err.to_string(),
                 }
-            })
+            }
+        }
     }
 }

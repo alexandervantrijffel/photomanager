@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_graphql::value;
-use rand::Rng;
 use std::path::{Path, PathBuf};
 
 // graphql subscription example test
@@ -52,7 +51,7 @@ async fn test_get_photos() -> Result<()> {
                     "baseUrl": "http://integration-test",
                     "photos": [
                         {
-                            "album": format!("{}/albumX", media_dir),
+                            "album": format!("{media_dir}/albumX"),
                             "url": "/media/albumX/123.jpg"
                         }
                     ]
@@ -141,11 +140,13 @@ mutation {
         })
     );
 
-    assert!(PathBuf::from(&media_dir)
-        .join(photomanagerlib::reviewscore::ReviewScore::Good.as_str())
-        .join("albumX")
-        .join("good-photo.jpg")
-        .exists());
+    assert!(
+        PathBuf::from(&media_dir)
+            .join(photomanagerlib::reviewscore::ReviewScore::Good.as_str())
+            .join("albumX")
+            .join("good-photo.jpg")
+            .exists()
+    );
 
     assert!(
         !good_photo_path.exists(),
@@ -157,13 +158,12 @@ mutation {
 fn init_env() -> Result<String> {
     let tempdir = std::env::temp_dir().join("photomanager-tests");
 
-    let mut rng = rand::thread_rng();
-    let random_suffix: u32 = rng.gen_range(1..10000);
+    let random_suffix = fastrand::u32(1..10000);
 
     let unique_filepath = photomanagerlib::fsops::get_unique_filepath(tempdir.to_str().unwrap())?;
-    let path = format!("{}--{}", unique_filepath, random_suffix);
+    let path = format!("{unique_filepath}--{random_suffix}");
 
-    std::env::set_var("PUBLIC_URL", "http://integration-test");
+    unsafe { std::env::set_var("PUBLIC_URL", "http://integration-test") };
     Ok(path)
 }
 
