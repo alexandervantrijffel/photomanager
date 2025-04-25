@@ -36,4 +36,4 @@ panic = 'abort'     # Abort on panic
 strip = true        # Strip symbols from binary*
 
 [dev-dependencies]
-rand = "0"
+fastrand = "2.3.0"
