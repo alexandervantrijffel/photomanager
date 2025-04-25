@@ -133,7 +133,7 @@ impl MutationRoot {
     ) -> MutationResponse<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
         file_manager
-            .undo(&PhotoReview {
+            FileManager::undo(&PhotoReview {
                 image: file_manager.new_image(&path),
                 score,
             })

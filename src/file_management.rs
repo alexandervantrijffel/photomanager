@@ -1,10 +1,3 @@
-use anyhow::{anyhow, bail, Context, Result};
-use std::path::PathBuf;
-use std::{env, fs};
-use tracing::info;
-
-use globwalk::GlobWalkerBuilder;
-
 use crate::fsops::{
     can_safely_overwrite, chmod, get_unique_filepath, have_equal_contents,
     rename_with_create_dir_all,
@@ -12,7 +5,12 @@ use crate::fsops::{
 use crate::image::{
     Image, ImageToReview, PhotoReview, PhotoReview as ReviewedPhoto, PhotosToReview,
 };
-use crate::reviewscore::{get_review_scores, get_review_scores_as_str, ReviewScore};
+use crate::reviewscore::{ReviewScore, get_review_scores, get_review_scores_as_str};
+use anyhow::{Context, Result, anyhow, bail};
+use globwalk::GlobWalkerBuilder;
+use std::path::PathBuf;
+use std::{env, fs};
+use tracing::info;
 
 pub struct FileManager {
     root_dir: String,
@@ -20,7 +18,7 @@ pub struct FileManager {
 
 impl FileManager {
     pub fn new(media_path: &str) -> Self {
-        FileManager {
+        Self {
             root_dir: media_path.into(),
         }
     }
@@ -39,18 +37,17 @@ impl FileManager {
 
         let destination_path = review.get_destination_path()?;
 
-        self.move_file_prevent_overwrite_different_contents(
+        Self::move_file_prevent_overwrite_different_contents(
             &review.image.full_path,
             &destination_path,
         )
-        .map(|_| ReviewedPhoto {
+        .map(|()| ReviewedPhoto {
             image: Image::from_full_path(&destination_path, &self.root_dir),
             score: review.score,
         })
     }
 
     fn move_file_prevent_overwrite_different_contents(
-        &self,
         source_file: &str,
         destination_file: &str,
     ) -> Result<()> {
@@ -66,7 +63,7 @@ impl FileManager {
         chmod(&final_destination_file, 0o775)
     }
 
-    pub fn undo(&self, review: &PhotoReview) -> Result<()> {
+    pub fn undo(review: &PhotoReview) -> Result<()> {
         info!("undoing review: {:?}", review);
         let destination_file = review.get_destination_path()?;
         if !PathBuf::from(&destination_file).exists() {
