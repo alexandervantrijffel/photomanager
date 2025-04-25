@@ -12,8 +12,6 @@ on:
 
     paths-ignore:
       - "README.md"
-  # pull_request:
-  #   branches: [ main ]
 
 concurrency:
   group: deploytoprod
@@ -36,14 +34,8 @@ jobs:
           components: rustfmt, clippy
           override: true
 
-      # - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
       
-      - name: Install cargo-audit binary crate
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-audit
-          version: latest
-          use-tool-cache: true
       - name: checkout
         uses: actions/checkout@v3
       - name: cargo test
@@ -62,10 +54,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
+
+      - name: Install cargo-audit binary crate
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-audit
+          version: latest
+          use-tool-cache: true
       - name: Security audit
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Export env vars
         id: set-outputs
         run: |
