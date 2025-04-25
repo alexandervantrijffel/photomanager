@@ -1549,7 +1549,7 @@ dependencies = [
 
 [[package]]
 name = "photomanager"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -1560,7 +1560,7 @@ dependencies = [
  "globwalk",
  "hyper",
  "listenfd",
- "rand 0.9.1",
+ "rand 0.8.5",
  "reqwest",
  "serde",
  "serde_json",
