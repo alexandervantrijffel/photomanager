@@ -1,7 +1,7 @@
 use crate::graphql_server::run_graphql_server;
+use axum::Router;
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::Router;
 // only import this as dev-dependency
 // #[cfg(debug_assertions)]
 use listenfd::ListenFd;
