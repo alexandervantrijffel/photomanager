@@ -43,7 +43,10 @@ jobs:
         with:
           command: test
           # args: --release --all-features
-      - name: cargo clippy
+          #
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
+      - name: Cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
