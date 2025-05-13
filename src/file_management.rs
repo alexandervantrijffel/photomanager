@@ -23,8 +23,8 @@ impl FileManager {
         }
     }
 
-    pub fn new_image(&self, relative_path: &str) -> Image {
-        Image::new(relative_path, &self.root_dir)
+    pub fn new_image(&self, relative_path: &str) -> Result<Image> {
+        Image::try_new(relative_path, &self.root_dir)
     }
 }
 
@@ -87,16 +87,18 @@ impl FileManager {
 
         let photos = image_files
             .iter()
-            .map(|f| ImageToReview {
-                url: "/media/".to_string() + &f.relative_path,
-                album: PathBuf::from(&f.full_path)
-                    .parent()
-                    .unwrap()
-                    .to_str()
-                    .unwrap_or("unknown")
-                    .into(),
+            .map(|f| {
+                Ok(ImageToReview {
+                    url: "/media/".to_string() + &f.relative_path,
+                    album: PathBuf::from(&f.full_path)
+                        .parent()
+                        .context("Failed to get parent directory")?
+                        .to_str()
+                        .context("to_str failed")?
+                        .into(),
+                })
             })
-            .collect::<Vec<ImageToReview>>();
+            .collect::<Result<Vec<ImageToReview>>>()?;
 
         Ok(PhotosToReview {
             base_url: env::var("PUBLIC_URL")

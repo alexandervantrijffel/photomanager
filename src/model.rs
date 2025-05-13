@@ -81,13 +81,11 @@ impl MutationRoot {
     ) -> Response<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
         match file_manager
-            .review_photo(&PhotoReview {
-                image: file_manager.new_image(&path),
-                score,
-            })
-            .map(upload_best_photos)
+            .new_image(&path)
+            .and_then(|image| file_manager.review_photo(&PhotoReview { image, score }))
+            .and_then(upload_best_photos)
         {
-            Ok(_) => Response::succeeded(String::new()),
+            Ok(()) => Response::succeeded(String::new()),
             Err(err) => {
                 error!("Failed to review photo '{}': {:#}", path, err);
                 Response {
@@ -101,10 +99,10 @@ impl MutationRoot {
     #[graphql(name = "undo")]
     async fn undo(&self, ctx: &Context<'_>, path: String, score: ReviewScore) -> Response<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
-        match FileManager::undo(&PhotoReview {
-            image: file_manager.new_image(&path),
-            score,
-        }) {
+        match file_manager
+            .new_image(&path)
+            .and_then(|image| FileManager::undo(&PhotoReview { image, score }))
+        {
             Ok(()) => Response::succeeded(String::new()),
             Err(err) => {
                 error!("Failed to undo review photo '{}': {:#}", path, err);

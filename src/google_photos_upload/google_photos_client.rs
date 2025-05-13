@@ -54,12 +54,12 @@ impl GooglePhotosClient {
         let img_bytes = fs::read(image_path)?;
 
         let mut headers = self.get_auth_headers()?;
-        headers.insert(CONTENT_TYPE, "application/octet-stream".parse().unwrap());
-        headers.insert("X-Goog-Upload-Protocol", "raw".parse().unwrap()); //
+        headers.insert(CONTENT_TYPE, "application/octet-stream".parse()?);
+        headers.insert("X-Goog-Upload-Protocol", "raw".parse()?); //
         //
         let mime_type = match PathBuf::from(image_path)
             .extension()
-            .unwrap()
+            .context("Failed to get file extension of image_path")?
             .to_str()
             .expect("Failed to get file extension of image_path")
         {

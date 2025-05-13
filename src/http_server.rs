@@ -4,6 +4,7 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 // only import this as dev-dependency
 // #[cfg(debug_assertions)]
+use anyhow::Result;
 use listenfd::ListenFd;
 use std::env;
 use tokio::signal;
@@ -12,12 +13,11 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-pub(crate) async fn run_http_server() -> anyhow::Result<()> {
+pub(crate) async fn run_http_server() -> Result<()> {
     info!("Starting HTTP server");
     let media_root_dir: String = shellexpand::env(
         &env::var("MEDIA_ROOT").expect("'MEDIA_ROOT' environment variable is required"),
-    )
-    .unwrap()
+    )?
     .into();
 
     let app = Router::new()

@@ -1,4 +1,5 @@
 use crate::reviewscore::ReviewScore;
+use anyhow::{Context, Result};
 use async_graphql::SimpleObject;
 use std::path::{Path, PathBuf};
 
@@ -35,24 +36,26 @@ pub struct Image {
     pub album_name: String,
 }
 impl Image {
-    pub fn new(relative_path: &str, root_dir: &str) -> Self {
-        Self {
+    pub fn try_new(relative_path: &str, root_dir: &str) -> Result<Self> {
+        Ok(Self {
             relative_path: relative_path.into(),
             root_dir: root_dir.into(),
             full_path: format!(
                 "{}{}",
                 root_dir,
-                relative_path.strip_prefix("/media").unwrap()
+                relative_path
+                    .strip_prefix("/media")
+                    .context("failed to strip prefix")?
             ),
             album_name: PathBuf::from(relative_path)
                 .parent()
-                .unwrap()
+                .context("Failed to get parent directory")?
                 .file_name()
-                .unwrap()
+                .context("Failed to get file name")?
                 .to_str()
-                .unwrap()
+                .context("Failed to convert to str")?
                 .into(),
-        }
+        })
     }
     pub fn from_full_path(full_path: &str, root_dir: &str) -> Self {
         Self {
