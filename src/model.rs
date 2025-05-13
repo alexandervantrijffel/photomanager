@@ -42,15 +42,12 @@ impl QueryRoot {
     ///  }
     ///}
     #[graphql(name = "photosToReview")]
-    async fn photos_to_review(&self, ctx: &Context<'_>) -> MutationResponse<PhotosToReview> {
+    async fn photos_to_review(&self, ctx: &Context<'_>) -> Response<PhotosToReview> {
         match ctx.data::<FileManager>().unwrap().get_photos_to_review() {
-            Ok(paths) => MutationResponse {
-                success: true,
-                output: paths,
-            },
+            Ok(paths) => Response::succeeded(paths),
             Err(err) => {
                 error!("Failed to retrieve photos_to_review: {:#}", err);
-                MutationResponse {
+                Response {
                     success: false,
                     output: PhotosToReview {
                         base_url: String::new(),
@@ -67,24 +64,6 @@ impl QueryRoot {
 #[derive(Default)]
 pub struct MutationRoot {}
 
-#[derive(SimpleObject)]
-#[graphql(concrete(name = "MutationReponseString", params(String)))]
-#[graphql(concrete(name = "MutationResponsePhotosToReview", params(PhotosToReview)))]
-pub struct MutationResponse<T: OutputType> {
-    success: bool,
-    output: T,
-}
-
-impl MutationResponse<String> {
-    #[must_use]
-    pub fn succeeded<T>(_: T) -> Self {
-        Self {
-            success: true,
-            output: String::new(),
-        }
-    }
-}
-
 #[Object]
 impl MutationRoot {
     ///     mutation {
@@ -99,7 +78,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         path: String,
         score: ReviewScore,
-    ) -> MutationResponse<String> {
+    ) -> Response<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
         match file_manager
             .review_photo(&PhotoReview {
@@ -108,10 +87,10 @@ impl MutationRoot {
             })
             .map(upload_best_photos)
         {
-            Ok(_) => MutationResponse::succeeded(String::new()),
+            Ok(_) => Response::succeeded(String::new()),
             Err(err) => {
                 error!("Failed to review photo '{}': {:#}", path, err);
-                MutationResponse {
+                Response {
                     success: false,
                     output: err.to_string(),
                 }
@@ -120,25 +99,41 @@ impl MutationRoot {
     }
 
     #[graphql(name = "undo")]
-    async fn undo(
-        &self,
-        ctx: &Context<'_>,
-        path: String,
-        score: ReviewScore,
-    ) -> MutationResponse<String> {
+    async fn undo(&self, ctx: &Context<'_>, path: String, score: ReviewScore) -> Response<String> {
         let file_manager = ctx.data::<FileManager>().unwrap();
         match FileManager::undo(&PhotoReview {
             image: file_manager.new_image(&path),
             score,
         }) {
-            Ok(()) => MutationResponse::succeeded(String::new()),
+            Ok(()) => Response::succeeded(String::new()),
             Err(err) => {
                 error!("Failed to undo review photo '{}': {:#}", path, err);
-                MutationResponse {
+                Response {
                     success: false,
                     output: err.to_string(),
                 }
             }
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+#[graphql(concrete(name = "MutationReponseString", params(String)))]
+#[graphql(concrete(name = "MutationResponsePhotosToReview", params(PhotosToReview)))]
+pub struct Response<T: OutputType> {
+    success: bool,
+    output: T,
+}
+
+impl<T> Response<T>
+where
+    T: OutputType,
+{
+    #[must_use]
+    pub const fn succeeded(t: T) -> Self {
+        Self {
+            success: true,
+            output: t,
         }
     }
 }

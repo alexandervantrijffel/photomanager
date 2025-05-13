@@ -1,14 +1,12 @@
 mod album;
 mod google_photos_client;
 
+use self::google_photos_client::{GooglePhotosClient, OauthSecrets};
+use crate::image::PhotoReview as ReviewedPhoto;
+use crate::reviewscore::ReviewScore;
 use anyhow::Result;
 use std::sync::mpsc;
 use tracing::{error, info, instrument};
-
-use crate::image::PhotoReview as ReviewedPhoto;
-use crate::reviewscore::ReviewScore;
-
-use self::google_photos_client::{GooglePhotosClient, OauthSecrets};
 
 struct UploadRequestContext {
     sender: mpsc::Sender<ReviewedPhoto>,
@@ -24,13 +22,13 @@ struct UploadRequestContext {
 // make sure that google upload errors become visible
 // perf: hashmap for known albums
 
-pub fn upload_best_photos(review: ReviewedPhoto) -> Result<(), mpsc::SendError<ReviewedPhoto>> {
+pub fn upload_best_photos(review: ReviewedPhoto) -> Result<()> {
     if review.score != ReviewScore::Best {
         return Ok(());
     }
     UPLOAD_REQUESTER.with(|ctx| {
         if ctx.enabled {
-            ctx.sender.send(review)
+            Ok(ctx.sender.send(review)?)
         } else {
             info!("Google photos upload is disabled because env vars are not set");
             Ok(())
