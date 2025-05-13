@@ -61,7 +61,7 @@ impl GooglePhotosClient {
             .extension()
             .context("Failed to get file extension of image_path")?
             .to_str()
-            .expect("Failed to get file extension of image_path")
+            .context("Failed to get file extension of image_path")?
         {
             "jpg" | "jpeg" => Ok("image/jpeg"),
             "png" => Ok("image/png"),
@@ -73,7 +73,7 @@ impl GooglePhotosClient {
                 "Mime type of exstension [{other_ext}] is not supported",
             )),
         }
-        .expect("Failed to get mime type of extension");
+        .map_err(|e| anyhow::anyhow!(e))?;
 
         headers.insert("X-Goog-Upload-Content-Type", mime_type.parse().unwrap()); //
 

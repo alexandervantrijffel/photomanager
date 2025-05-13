@@ -102,7 +102,7 @@ impl FileManager {
 
         Ok(PhotosToReview {
             base_url: env::var("PUBLIC_URL")
-                .expect("'PUBLIC_URL' environment variable is required"),
+                .context("'PUBLIC_URL' environment variable is required")?,
             photos,
             folder_image_count,
             folder_name,
