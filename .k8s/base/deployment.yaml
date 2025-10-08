@@ -10,8 +10,6 @@ spec:
   selector:
     matchLabels:
       app: photomanager
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
